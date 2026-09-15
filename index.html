@@ -1,109 +1,48 @@
-```html
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Team Venta x Void 봇 서비스 안내 및 구매 정보">
   <title>Team Venta x Void</title>
-
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #09090d;
-      color: #fff;
-      font-family: Arial, "Noto Sans KR", sans-serif;
-    }
-
-    .container {
-      width: 90%;
-      max-width: 520px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 42px;
-      font-weight: 800;
-      margin-bottom: 14px;
-      letter-spacing: -1.5px;
-    }
-
-    .description {
-      color: #9999a5;
-      font-size: 16px;
-      margin-bottom: 34px;
-    }
-
-    .buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .button {
-      width: 100%;
-      padding: 17px 20px;
-      border: 1px solid #24242d;
-      border-radius: 14px;
-      background: #111117;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: 0.2s ease;
-    }
-
-    .button:hover {
-      transform: translateY(-2px);
-      background: #181820;
-      border-color: #3a3a47;
-    }
-
-    .button:active {
-      transform: translateY(0);
-    }
-
-    .void {
-      border-left: 3px solid #7c5cff;
-    }
-
-    .venta {
-      border-left: 3px solid #4da3ff;
-    }
-
-    @media (max-width: 500px) {
-      h1 {
-        font-size: 32px;
-      }
-    }
+    :root { --bg:#101112; --surface:#17191a; --surface-hover:#1d2021; --line:#2a2d2f; --text:#f3f4f1; --muted:#a7aaa5; --void:#b0a2ff; --venta:#8fc7e8; --radius:20px; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { min-width:320px; margin:0; background:var(--bg); color:var(--text); font-family:Pretendard,"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+    .page { width:min(100% - 40px,1040px); margin:0 auto; padding:32px 0 56px; }
+    .topbar,.brand,.meta,.card__head,.price-row,.card__footer { display:flex; align-items:center; }
+    .topbar { justify-content:space-between; }.brand { gap:10px; font-size:14px; font-weight:750; letter-spacing:-.2px; }
+    .brand-mark { display:grid; width:28px; height:28px; place-items:center; border:1px solid #4c5050; border-radius:9px; color:#d9ddd7; font-size:12px; }
+    .status { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; }.status::before { width:6px; height:6px; border-radius:50%; background:#9aba87; content:""; }
+    .intro { max-width:660px; padding:92px 0 54px; }.eyebrow { margin:0 0 16px; color:#c2c6c0; font-size:13px; font-weight:650; letter-spacing:.08em; text-transform:uppercase; }
+    h1 { max-width:600px; margin:0; font-size:clamp(38px,6vw,65px); line-height:1.13; letter-spacing:-.065em; }
+    .intro__copy { max-width:470px; margin:24px 0 0; color:var(--muted); font-size:16px; line-height:1.75; word-break:keep-all; }
+    .section-label { margin:0 0 14px; color:var(--muted); font-size:13px; font-weight:650; }.products { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .product-card { position:relative; display:flex; min-height:330px; flex-direction:column; padding:26px; overflow:hidden; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); color:inherit; text-decoration:none; transition:transform .2s ease,border-color .2s ease,background .2s ease; }
+    .product-card:hover { transform:translateY(-3px); background:var(--surface-hover); }.product-card:focus-visible { outline:2px solid #eff2ed; outline-offset:4px; }.product-card--void:hover { border-color:#7469b3; }.product-card--venta:hover { border-color:#5e97b5; }
+    .product-card::after { position:absolute; right:-32px; bottom:-42px; width:160px; height:160px; border-radius:50%; content:""; opacity:.22; filter:blur(2px); }.product-card--void::after { background:var(--void); }.product-card--venta::after { background:var(--venta); }
+    .card__head { justify-content:space-between; }.product-number { color:var(--muted); font-size:12px; font-weight:700; }.card-tag { padding:6px 9px; border-radius:99px; background:#25282a; color:#d6dad4; font-size:11px; font-weight:700; }
+    .product-card h2 { margin:35px 0 10px; font-size:29px; letter-spacing:-.05em; }.card-copy { max-width:260px; margin:0; color:var(--muted); font-size:14px; line-height:1.65; word-break:keep-all; }
+    .card__footer { position:relative; z-index:1; justify-content:space-between; margin-top:auto; padding-top:28px; }.price-row { gap:10px; }.price { font-size:25px; font-weight:800; letter-spacing:-.04em; }.original { color:#777b78; font-size:13px; text-decoration:line-through; }
+    .arrow { display:grid; width:37px; height:37px; place-items:center; border:1px solid #414546; border-radius:50%; color:#e6eae4; font-size:19px; transition:background .2s ease; }.product-card:hover .arrow { background:#2c3030; }
+    .notice { display:flex; gap:12px; margin-top:14px; padding:16px 18px; border:1px solid var(--line); border-radius:14px; color:var(--muted); font-size:13px; line-height:1.55; }.notice strong { color:#dfe3dd; white-space:nowrap; }footer { margin-top:54px; color:#737772; font-size:12px; }
+    @media (max-width:620px) { .page { width:min(100% - 32px,540px); padding-top:20px; }.intro { padding:70px 0 42px; }.products { grid-template-columns:1fr; }.product-card { min-height:290px; }.notice { align-items:flex-start; flex-direction:column; gap:4px; } }
   </style>
 </head>
-
 <body>
-
-  <main class="container">
-    <h1>안녕하세요, Team Venta x Void</h1>
-    <p class="description">이동할 섹션을 선택하세요.</p>
-
-    <div class="buttons">
-      <button class="button void" onclick="location.href='/voidbot'">
-        보이드봇
-      </button>
-
-      <button class="button venta" onclick="location.href='/ventabot'">
-        벤타봇
-      </button>
-    </div>
+  <main class="page">
+    <header class="topbar"><div class="brand"><span class="brand-mark">V×V</span><span>TEAM VENTA × VOID</span></div><span class="status">서비스 운영 중</span></header>
+    <section class="intro" aria-labelledby="page-title"><p class="eyebrow">Bot collection</p><h1 id="page-title">필요한 기능만,<br>조용하게.</h1><p class="intro__copy">복잡한 선택 없이 원하는 봇을 골라 시작하세요. 현재 운영 중인 상품과 할인가를 한눈에 확인할 수 있습니다.</p></section>
+    <section aria-labelledby="products-title">
+      <p class="section-label" id="products-title">운영 중인 봇</p>
+      <div class="products">
+        <a class="product-card product-card--void" href="voidbot/" aria-label="보이드봇 상품 보기, 할인가 10,000원"><div class="card__head"><span class="product-number">01</span><span class="card-tag">50% 할인</span></div><h2>보이드봇</h2><p class="card-copy">보이드봇 상품 정보와 구매 안내를 확인하세요.</p><div class="card__footer"><div class="price-row"><strong class="price">10,000원</strong><span class="original">20,000원</span></div><span class="arrow" aria-hidden="true">↗</span></div></a>
+        <a class="product-card product-card--venta" href="ventabot/" aria-label="밴타봇 상품 보기, 할인가 30,000원"><div class="card__head"><span class="product-number">02</span><span class="card-tag">40% 할인</span></div><h2>밴타봇</h2><p class="card-copy">밴타봇 상품 정보와 구매 안내를 확인하세요.</p><div class="card__footer"><div class="price-row"><strong class="price">30,000원</strong><span class="original">50,000원</span></div><span class="arrow" aria-hidden="true">↗</span></div></a>
+      </div>
+      <aside class="notice"><strong>구매 전 확인</strong><span>각 상품을 선택하면 가격과 구매에 필요한 정보를 확인할 수 있습니다.</span></aside>
+    </section>
+    <footer>© Team Venta × Void</footer>
   </main>
-
 </body>
 </html>
-```
