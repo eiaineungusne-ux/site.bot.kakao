@@ -1,39 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>준비중입니다</title>
-
+  <meta name="description" content="보이드봇 상품 및 가격 안내">
+  <title>보이드봇 | Team Venta x Void</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #09090d;
-      color: #fff;
-      font-family: Arial, "Noto Sans KR", sans-serif;
-    }
-
-    .container {
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 42px;
-      font-weight: 800;
-      letter-spacing: -1.5px;
-      margin-bottom: 12px;
-    }
-
-    p {
+    :root { --bg:#101112; --surface:#181a1b; --line:#2a2d2f; --text:#f3f4f1; --muted:#a7aaa5; --accent:#b0a2ff; }
+    * { box-sizing:border-box; } body { min-width:320px; margin:0; background:var(--bg); color:var(--text); font-family:Pretendard,"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; }
+    .page { width:min(100% - 40px,880px); margin:0 auto; padding:32px 0 56px; }.back { display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:14px; text-decoration:none; transition:color .2s ease; }.back:hover { color:var(--text); }.back:focus-visible,.buy:focus-visible { outline:2px solid #f0f2ed; outline-offset:4px; }
+    .product { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:56px; padding:104px 0 74px; }.eyebrow { margin:0 0 15px; color:var(--accent); font-size:13px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; }h1 { margin:0; font-size:clamp(44px,7vw,70px); line-height:1; letter-spacing:-.07em; }.description { max-width:470px; margin:25px 0 0; color:var(--muted); font-size:16px; line-height:1.75; word-break:keep-all; }
+    .price-card { align-self:start; padding:25px; border:1px solid var(--line); border-radius:20px; background:var(--surface); }.label { margin:0; color:var(--muted); font-size:13px; }.price { margin:10px 0 5px; font-size:36px; font-weight:800; letter-spacing:-.06em; }.original { color:#777b78; font-size:14px; text-decoration:line-through; }.saving { display:inline-block; margin:22px 0; padding:6px 9px; border-radius:8px; background:#29283c; color:#d6d0ff; font-size:12px; font-weight:750; }.buy { display:flex; width:100%; align-items:center; justify-content:center; min-height:50px; border-radius:12px; background:var(--accent); color:#17151f; font-size:14px; font-weight:800; text-decoration:none; transition:filter .2s ease,transform .2s ease; }.buy:hover { filter:brightness(1.08); transform:translateY(-1px); }
+    .info { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }.info div { padding:20px 0; }.info div+div { padding-left:24px; border-left:1px solid var(--line); }.info dt { color:var(--muted); font-size:12px; }.info dd { margin:8px 0 0; font-size:14px; font-weight:700; }.purchase-note { margin:19px 0 0; color:var(--muted); font-size:13px; line-height:1.65; }footer { margin-top:56px; color:#737772; font-size:12px; }
+    @media (max-width:680px) { .page { width:min(100% - 32px,540px); padding-top:20px; }.product { grid-template-columns:1fr; gap:36px; padding:70px 0 54px; }.price-card { max-width:420px; }.info { grid-template-columns:1fr; }.info div { padding:16px 0; }.info div+div { padding-left:0; border-top:1px solid var(--line); border-left:0; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back" href="../">← 전체 상품으로</a>
+    <section class="product" aria-labelledby="product-name">
+      <div><p class="eyebrow">Bot 01</p><h1 id="product-name">보이드봇</h1><p class="description">필요한 정보와 가격만 남긴 보이드봇 안내 페이지입니다. 아래 구매 안내를 통해 진행해 주세요.</p></div>
+      <aside class="price-card" aria-label="보이드봇 가격"><p class="label">현재 할인가</p><p class="price">10,000원</p><span class="original">정가 20,000원</span><p class="saving">50% 할인</p><a class="buy" href="#purchase">구매 안내 보기</a></aside>
+    </section>
+    <section class="info" id="purchase" aria-label="구매 정보"><div><dt>상품</dt><dd>보이드봇</dd></div><div><dt>정가</dt><dd>20,000원</dd></div><div><dt>판매가</dt><dd>10,000원</dd></div></section>
+    <p class="purchase-note">구매 진행 경로는 운영자가 제공하는 안내를 확인해 주세요.</p>
+    <footer>© Team Venta × Void</footer>
+  </main>
+</body>
+</html>
       color: #9999a5;
       font-size: 16px;
     }
