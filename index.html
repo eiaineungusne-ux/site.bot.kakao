@@ -1,4 +1,76 @@
-<!doctype html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카카오톡 공유하기 테스트</title>
+    
+    <!-- ① 카카오톡 JavaScript SDK SDK 설치 -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js" 
+            integrity="sha384-OL+ylM/iuPLtW5U3XcvLSGhE8JzReKDank5InqlHGWPhb4140/yrBw0bg0y7+C9J" 
+            crossorigin="anonymous"></script>
+    
+    <script>
+        // ② 카카오 개발자 센터에서 발급받은 본인의 'JavaScript 키'를 입력하세요.
+        // 예: Kakao.init('1234567890abcdef1234567890abcdef');
+        Kakao.init('1f95a21dfda2bb3b16325eaf1f7f1dc8'); 
+        
+        // SDK 초기화 여부 확인 (테스트용 콘솔)
+        console.log("카카오 SDK 초기화 상태:", Kakao.isInitialized());
+    </script>
+</head>
+<body>
+
+    <h1>카카오톡 공유하기 API 테스트</h1>
+
+    <!-- ③ 카카오톡 공유 버튼 -->
+    <a id="kakaotalk-sharing-btn" href="javascript:shareMessage()">
+        <img src="https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_medium.png" alt="카카오톡 공유 보내기 버튼" />
+    </a>
+
+    <!-- ④ 공유 기능 실행 스크립트 -->
+    <script>
+        function shareMessage() {
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title: '컴맹차이',
+                    description: '#컴맹',
+                    imageUrl: 'https://cdn.discordapp.com/attachments/1542839928046616650/1544944464500490320/f5a0118e561daf40f6c2f8082d1c23b7.jpg?ex=6aab7ca8&is=6aaa2b28&hm=02dc564305edcf32230067a3ec58edf74ab4d347aa848179f5f9e086ff23ec89&',
+                    link: {
+                        // ※ 주의: 카카오 디벨로퍼스 [내 애플리케이션] > [플랫폼] > [Web]에 등록한 도메인과 일치해야 합니다.
+                        mobileWebUrl: 'https://developers.kakao.com',
+                        webUrl: 'https://developers.kakao.com',
+                    },
+                },
+                social: {
+                    likeCount: 286,
+                    commentCount: 45,
+                    sharedCount: 845,
+                },
+                buttons: [
+                    {
+                        title: '웹으로 보기',
+                        link: {
+                            mobileWebUrl: 'https://developers.kakao.com',
+                            webUrl: 'https://developers.kakao.com',
+                        },
+                    },
+                    {
+                        title: '앱으로 보기',
+                        link: {
+                            mobileWebUrl: 'https://developers.kakao.com',
+                            webUrl: 'https://developers.kakao.com',
+                        },
+                    },
+                ],
+            });
+        }
+    </script>
+
+</body>
+</html>
+<!-- <!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -48,4 +120,4 @@
   </main>
   <footer class="footnote"><div class="footnote__top"><span>© Team Venta × Void</span><span class="footnote__links"><a href="terms/">이용약관</a><span class="status">서비스 운영 중</span></span></div></footer>
 </body>
-</html>
+</html> -->
