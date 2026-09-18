@@ -1,0 +1,59 @@
+backend:
+  name: github
+  repo: eiaineungusne-ux/site.bot.kakao
+  branch: main
+site_url: https://kakaobot.xyz
+media_folder: assets/uploads
+public_folder: /assets/uploads
+collections:
+  - name: terms
+    label: 봇별 이용약관
+    files:
+      - name: voidbot
+        label: 보이드봇 이용약관
+        file: terms/voidbot/readme.md
+        format: yaml-frontmatter
+        fields:
+          - { name: layout, widget: hidden, default: terms }
+          - { name: bot, widget: hidden, default: voidbot }
+          - { name: permalink, widget: hidden, default: /terms/voidbot/ }
+          - { label: 제목, name: title, widget: string }
+          - {
+              label: 시행일,
+              name: effective_date,
+              widget: datetime,
+              format: YYYY-MM-DD,
+              time_format: false,
+            }
+          - {
+              label: 최종 수정일,
+              name: updated,
+              widget: datetime,
+              format: YYYY-MM-DD,
+              time_format: false,
+            }
+          - { label: 약관 본문, name: body, widget: markdown }
+      - name: ventabot
+        label: 밴타봇 이용약관
+        file: terms/ventabot/readme.md
+        format: yaml-frontmatter
+        fields:
+          - { name: layout, widget: hidden, default: terms }
+          - { name: bot, widget: hidden, default: ventabot }
+          - { name: permalink, widget: hidden, default: /terms/ventabot/ }
+          - { label: 제목, name: title, widget: string }
+          - {
+              label: 시행일,
+              name: effective_date,
+              widget: datetime,
+              format: YYYY-MM-DD,
+              time_format: false,
+            }
+          - {
+              label: 최종 수정일,
+              name: updated,
+              widget: datetime,
+              format: YYYY-MM-DD,
+              time_format: false,
+            }
+          - { label: 약관 본문, name: body, widget: markdown }

@@ -3,20 +3,26 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>이용약관 | Venta × Void</title>
+    <title>{{ page.title | escape }} | Venta × Void</title>
     <meta
       name="description"
-      content="이용하려는 봇을 선택하고 해당 서비스의 이용 조건을 확인하세요."
+      content="봇별 서비스 이용 조건과 구매, 환불 및 지원 안내입니다."
     />
-    <link rel="canonical" href="https://kakaobot.xyz/terms/" />
+    <link rel="canonical" href="https://kakaobot.xyz{{ page.permalink }}" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ko_KR" />
-    <meta property="og:title" content="이용약관 | Venta × Void" />
+    <meta
+      property="og:title"
+      content="{{ page.title | escape }} | Venta × Void"
+    />
     <meta
       property="og:description"
-      content="이용하려는 봇을 선택하고 해당 서비스의 이용 조건을 확인하세요."
+      content="봇별 서비스 이용 조건과 구매, 환불 및 지원 안내입니다."
     />
-    <meta property="og:url" content="https://kakaobot.xyz/terms/" />
+    <meta
+      property="og:url"
+      content="https://kakaobot.xyz{{ page.permalink }}"
+    />
     <meta
       property="og:image"
       content="https://kakaobot.xyz/og-image.png?v=heart-20260918"
@@ -49,27 +55,21 @@
     <main id="main">
       <section class="terms-hero">
         <p class="eyebrow">TERMS OF SERVICE</p>
-        <h1>함께 지키는 약속.</h1>
-        <p>이용할 봇을 선택해 약관을 확인해 주세요.</p>
+        <h1>{{ page.title | escape }}</h1>
+        <p>구매 전 확인해야 할 서비스 이용 조건입니다.</p>
+        <nav class="terms-tabs" aria-label="봇별 이용약관">
+          <a href="/terms/ventabot/" {% if page.bot == 'ventabot' %}aria-current="page"{% endif %}>밴타봇</a>
+          <a href="/terms/voidbot/" {% if page.bot == 'voidbot' %}aria-current="page"{% endif %}>보이드봇</a>
+        </nav>
       </section>
-      <section class="wrap section grid" aria-label="봇별 이용약관">
-        <article class="card">
-          <p class="eyebrow">VENTABOT</p>
-          <h3>밴타봇 이용약관</h3>
-          <p class="desc">구매와 이용, 환불 및 지원에 관한 기본 조건입니다.</p>
-          <div class="card-bottom">
-            <a class="button" href="/terms/ventabot/">밴타봇 약관 읽기</a>
-          </div>
-        </article>
-        <article class="card dark">
-          <p class="eyebrow">VOIDBOT</p>
-          <h3>보이드봇 이용약관</h3>
-          <p class="desc">보이드봇에 적용되는 이용 조건을 확인하세요.</p>
-          <div class="card-bottom">
-            <a class="button" href="/terms/voidbot/">보이드봇 약관 읽기</a>
-          </div>
-        </article>
-      </section>
+      <article class="wrap legal">
+        <div class="legal-meta">
+          시행일 {{ page.effective_date | date: '%Y.%m.%d' }} · 최종 수정 {{
+          page.updated | date: '%Y.%m.%d' }}
+        </div>
+        {{ content }}
+        <p><a href="/{{ page.bot }}/">구매 안내로 돌아가기 →</a></p>
+      </article>
     </main>
     <footer class="footer">
       <div class="wrap footer-inner">
