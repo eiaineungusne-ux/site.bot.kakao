@@ -14,9 +14,7 @@ collections:
         file: terms/voidbot/readme.md
         format: yaml-frontmatter
         fields:
-          - { name: layout, widget: hidden, default: terms }
           - { name: bot, widget: hidden, default: voidbot }
-          - { name: permalink, widget: hidden, default: /terms/voidbot/ }
           - { label: 제목, name: title, widget: string }
           - {
               label: 시행일,
@@ -38,9 +36,7 @@ collections:
         file: terms/ventabot/readme.md
         format: yaml-frontmatter
         fields:
-          - { name: layout, widget: hidden, default: terms }
           - { name: bot, widget: hidden, default: ventabot }
-          - { name: permalink, widget: hidden, default: /terms/ventabot/ }
           - { label: 제목, name: title, widget: string }
           - {
               label: 시행일,

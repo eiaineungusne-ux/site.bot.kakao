@@ -1,59 +1,57 @@
 # Venta × Void
 
-밴타봇·보이드봇 구매 안내 사이트입니다. GitHub Pages의 `main` 브랜치 루트에서 Jekyll로 배포합니다.
+빌드 없이 배포하는 정적 사이트입니다. Cloudflare와 GitHub Pages에서 저장소 루트를 그대로 제공합니다. `.nojekyll`을 유지하세요.
 
-## 약관 수정 → 자동 게시
+## 관리자 페이지
 
-| 대상     | 수정할 원본                | 공개 페이지        |
-| -------- | -------------------------- | ------------------ |
-| 밴타봇   | `terms/ventabot/readme.md` | `/terms/ventabot/` |
-| 보이드봇 | `terms/voidbot/readme.md`  | `/terms/voidbot/`  |
+**https://kakaobot.xyz/admin/**
 
-위 두 파일이 각 약관의 단일 원본입니다. 이 루트 readme는 운영 가이드입니다.
+1. **Sign In with Token**으로 로그인합니다. 이 저장소에 쓰기 권한이 있는 GitHub 계정의 토큰을 관리자 화면에 직접 입력하세요. 코드에 저장하지 마세요.
+2. **봇별 이용약관** → 밴타봇 또는 보이드봇을 선택합니다.
+3. 제목, 시행일, 수정일, 본문을 수정하고 저장/게시합니다.
+4. `main`에 자동 커밋됩니다. 호스팅 배포 완료 후 공개 약관을 새로고침합니다.
 
-1. 해당 봇의 `readme.md`에서 본문과 `updated` 날짜를 수정합니다. 약관 변경 시 공지 기간을 고려해 `effective_date`도 설정합니다.
-2. `main`에 커밋·푸시합니다. GitHub 웹 편집기에서 커밋해도 동일합니다.
-3. GitHub Pages가 Markdown을 `_layouts/terms.html`로 변환해 게시합니다. 저장소 Actions의 `pages build and deployment` 완료 후 공개 페이지를 확인합니다.
+OAuth 로그인 서버는 별도로 설정하지 않았으므로 토큰 로그인을 사용하세요. 인증 후 실제 게시 검증은 운영자 로그인 상태에서 진행해야 합니다.
 
-문서 맨 위 `---` 사이의 `layout`, `bot`, `permalink`는 유지하세요. `.nojekyll`을 추가하면 약관 자동 변환이 중단됩니다. 약관별 `index.html`을 따로 만들면 출력 경로가 충돌하므로 만들지 마세요.
+## Markdown 직접 수정
 
-## Sveltia CMS
+| 봇       | 콘텐츠 원본                | 공개 페이지                          |
+| -------- | -------------------------- | ------------------------------------ |
+| 밴타봇   | `terms/ventabot/readme.md` | https://kakaobot.xyz/terms/ventabot/ |
+| 보이드봇 | `terms/voidbot/readme.md`  | https://kakaobot.xyz/terms/voidbot/  |
 
-- 관리 화면: <https://kakaobot.xyz/admin/>
-- Sveltia CMS 0.215.0 사용. `admin/config.yml`에 두 Markdown 파일을 개별 편집 항목으로 등록했습니다.
-- 관리자 화면에서 **Sign In with Token**으로 저장소 쓰기 권한이 있는 GitHub 계정의 토큰을 직접 입력합니다. 별도 OAuth 서버는 연결하지 않았습니다.
-- 가능하면 이 저장소만 선택하고 Contents 읽기/쓰기 권한을 부여한 fine-grained 토큰을 사용하세요. 조직·계정 정책에 따라 승인이 필요할 수 있습니다. 토큰을 코드나 이 문서에 넣지 마세요.
-- “봇별 이용약관” → 해당 봇 → 제목·시행일·수정일·본문 편집 → 저장/게시하면 `main`에 커밋됩니다. 이후 Pages 배포를 기다립니다.
-- CMS 화면이 공개되어도 저장소 쓰기 권한 없이는 게시할 수 없습니다. CMS는 외부 CDN 연결이 필요합니다. 공개 약관은 빌드된 HTML이므로 CMS나 JavaScript 없이 읽을 수 있습니다.
-- 인증된 저장/게시 동작은 운영자의 브라우저 로그인 후 확인해야 합니다.
+해당 파일의 본문과 `updated`를 수정하고 커밋·푸시합니다. YAML의 `bot`은 유지하고 날짜는 `YYYY-MM-DD` 형식으로 입력하세요. 이 루트 readme는 운영 가이드입니다.
 
-## 로컬 미리보기
+각 약관 경로에 실제 `index.html`이 있어 Jekyll이나 SPA 경로 처리가 필요하지 않습니다. `assets/terms.js`가 최신 `readme.md`를 읽고 안전하게 렌더링합니다. 라이브러리는 `assets/vendor/`에 포함해 공개 약관이 외부 CDN에 의존하지 않도록 했습니다.
 
-Ruby와 Bundler 설치 후:
+HTML에는 초기 약관도 포함합니다. JavaScript를 끄면 초기 내용과 원문 링크를 표시합니다. 원문 로드 실패 시 저장된 내용임을 안내합니다. 최신 개정 내용은 JavaScript를 켜거나 원문에서 확인합니다.
+
+## 로컬 확인
 
 ```sh
-bundle install
-bundle exec jekyll serve
+python -m http.server 8765
 ```
 
-`http://localhost:4000`에서 확인합니다. 단순 정적 서버로는 메인·제품 화면은 확인할 수 있지만 Markdown 약관은 Jekyll 빌드가 필요합니다.
+http://localhost:8765 에서 메인, 제품, 약관과 관리 화면을 확인합니다. `file://` 대신 HTTP 서버를 사용하세요.
 
-## 디자인·미리보기 이미지
+DOM 기능 검사: 임시 폴더에 `npm install --prefix <임시폴더> jsdom`으로 설치하고, `JSDOM_MODULE` 환경변수를 해당 `node_modules/jsdom` 경로로 지정한 후 `node scripts/test-terms.cjs`를 실행합니다.
 
-- [Apple HIG Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Typography](https://developer.apple.com/design/human-interface-guidelines/typography)를 참고해 시스템 글꼴, 명확한 위계, 여백, 반응형 배치, 키보드 포커스와 동작 줄이기를 적용했습니다.
-- 공통 스타일: `assets/site.css`.
-- `og-image.png`: 첨부 하트를 내장 imagegen으로 가로형으로 편집한 이미지(1731 × 909). 기존 미리보기 이미지를 교체했습니다. 페이지 안에서는 `object-fit: contain`으로 비율을 보존합니다.
-- 이미지 편집 프롬프트 요약: “첨부한 흰색 손그림 하트와 세 개의 강조선을 유지하고 검은 캔버스만 약 1.905:1 가로형으로 확장. 중앙 배치, 왜곡·잘림·문구 없이 충분한 여백.”
-- OG/Twitter 이미지는 만료되는 외부 링크 대신 사이트 절대 주소를 사용합니다. 이미 공유된 카카오톡 링크는 플랫폼 캐시 때문에 잠시 이전 이미지가 표시될 수 있습니다.
+## 배포
 
-## 약관 운영 시 확인
+- GitHub Pages: `main` / 루트. `.nojekyll`로 HTML과 Markdown을 그대로 게시합니다.
+- Cloudflare: 저장소 루트를 배포합니다. 빌드 명령이 필요하지 않습니다.
+- 약관 주소가 홈페이지로 바뀐다면 배포 결과에 약관별 `index.html`이 포함됐는지 확인하세요.
+- CMS 수정도 연결된 호스팅 배포 완료 후 반영됩니다. CMS와 호스팅이 같은 저장소의 `main`을 사용하는지 확인하세요.
 
-기본 약관 초안을 작성했습니다. 실제 판매 기능, 지원 환경, 이용 기간, 판매자 정보, 결제·환불 절차는 결제 전에 별도로 명확히 안내해야 합니다. 개인정보를 수집한다면 실제 처리 현황에 맞는 개인정보 처리방침을 별도로 마련하세요. 이 약관은 개인정보 처리방침을 대신하지 않습니다.
+## 디자인·미리보기
 
-## 저장소 비공개 전환
+- 공통 스타일은 `assets/site.css`입니다.
+- `og-image.png` 하트는 **카카오톡·디스코드 링크 미리보기(OG/Twitter) 전용**입니다. 사이트 본문에 표시하지 않습니다.
+- 이미 공유된 링크는 플랫폼 캐시 때문에 이전 이미지가 잠시 보일 수 있습니다.
+- 참고: [Apple Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Sveltia GitHub 인증](https://sveltiacms.app/en/docs/backends/github).
 
-현재 작업 계정은 저장소 쓰기 권한만 있고 관리자 권한이 없어 공개 범위를 변경할 수 없습니다. 소유자가 GitHub 저장소 Settings → General → Danger Zone → Change repository visibility에서 변경할 수 있습니다.
+## 운영 메모
 
-GitHub Free의 비공개 저장소는 Pages 배포를 지원하지 않습니다. 먼저 소유자 요금제의 private Pages 지원 여부 또는 대체 호스팅을 확인하세요. 지원 요금제에서 저장소를 비공개로 바꾸더라도 배포 사이트 자체는 공개일 수 있습니다.
+기본 약관을 작성했습니다. 실제 기능·이용 기간·판매자 정보·환불 절차는 결제 전에 안내하고, 개인정보를 수집한다면 실제 처리 현황에 맞는 개인정보 처리방침을 별도로 마련하세요.
 
-참고: [Sveltia GitHub 인증](https://sveltiacms.app/en/docs/backends/github), [GitHub Pages 안내](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages).
+저장소 비공개 전환은 소유자/관리자 권한이 필요합니다. 현재 작업 계정에는 쓰기 권한만 있습니다. 소유자가 비공개로 바꿀 때 GitHub Pages 요금제 지원 및 실제 호스팅 연결을 확인하세요.

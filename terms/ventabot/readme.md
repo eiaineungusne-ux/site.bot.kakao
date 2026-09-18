@@ -1,10 +1,8 @@
 ---
-layout: terms
 title: 밴타봇 이용약관
 bot: ventabot
 effective_date: "2026-09-18"
 updated: "2026-09-18"
-permalink: /terms/ventabot/
 ---
 
 > 이 약관은 밴타봇에 적용됩니다. 다른 봇의 구매에는 해당 봇의 약관이 적용됩니다. 구매 전 기능, 지원 환경, 이용 기간 및 총 결제 금액을 확인해 주세요.
