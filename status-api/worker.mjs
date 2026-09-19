@@ -1,9 +1,44 @@
 import { initial, heartbeat, expire, publicState, adminUpdate, TIMEOUT } from './state.mjs';
 import { equalSecret, authorizeAdmin, createSession, checkSession } from './admin-auth.mjs';
 const json = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+const STATUS_HOST = 'venta.kakaobot.xyz';
+const PAGES_ORIGIN = 'https://kakaobot.xyz';
+
+// venta.kakaobot.xyz is a status-only hostname.  The existing Pages project
+// remains the source of the static files, while this Worker chooses the two
+// safe entry points without exposing a general-purpose proxy.
+async function serveStatusSite(request, url) {
+  if (!['GET', 'HEAD'].includes(request.method)) {
+    return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
+  }
+
+  let path = url.pathname;
+  if (path === '/') path = '/ventabot/status/';
+  else if (path === '/admin' || path === '/admin/') path = '/admin/status/';
+  else if (path.startsWith('/admin/status/')) path = path;
+
+  // Only static resources that are needed by the status and admin pages are
+  // requested from the Pages origin. Query strings are preserved for cache
+  // busting, while credentials and user supplied forwarding headers are not.
+  const upstream = new URL(path, PAGES_ORIGIN);
+  upstream.search = url.search;
+  const response = await fetch(new Request(upstream, {
+    method: request.method,
+    headers: {
+      Accept: request.headers.get('Accept') || '*/*',
+      'Accept-Language': request.headers.get('Accept-Language') || 'ko'
+    }
+  }));
+  const headers = new Headers(response.headers);
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Referrer-Policy', 'no-referrer');
+  return new Response(response.body, { status: response.status, headers });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.hostname === STATUS_HOST) return serveStatusSite(request, url);
     const origin = request.headers.get('Origin');
     const origins = (env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
     const cors = { 'Vary': 'Origin', 'Cache-Control': 'no-store' };
