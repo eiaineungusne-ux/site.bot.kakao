@@ -1,7 +1,8 @@
 export const TIMEOUT = 90_000;
 export const DEFAULT_MESSAGE = '관리자가 원인을 분석하고 있어요';
 export const BAN_MESSAGE = '카카오 영구정지로 인해 관리자가 복구중이에요';
-export const TITLES = { online: '정상 운영 중', offline: '서버 연결이 끊어졌어요.', permanent_ban: '카카오 영구정지', unknown: '상태 확인 중' };
+export const MAINTENANCE_MESSAGE = '관리자가 서버 점검을 진행하고 있어요.';
+export const TITLES = { online: '정상 운영 중', offline: '서버 연결이 끊어졌어요.', permanent_ban: '카카오 영구정지', maintenance: '서버 점검중', unknown: '상태 확인 중' };
 const day = at => new Date(at + 9 * 3600000).toISOString().slice(0, 10);
 const order = { unknown: 0, online: 1, offline: 2, permanent_ban: 3 };
 function recordDay(s, at, state = s.state) {
@@ -30,7 +31,7 @@ function compact(s, now) {
   while (new TextEncoder().encode(JSON.stringify(s)).byteLength > 700000 && s.incidents.length > 1) s.incidents.pop();
 }
 export function initial() {
-  return { lastSeen: null, state: 'unknown', ban: false, incidents: [], days: {}, notice: '', revision: 0 };
+  return { lastSeen: null, state: 'unknown', ban: false, maintenance: false, incidents: [], days: {}, notice: '', revision: 0 };
 }
 function transition(s, next, now) {
   if (s.state === next) return;
@@ -70,21 +71,36 @@ export function heartbeat(s, report, now) {
   s.revision++;
 }
 export function adminUpdate(s, input, now) {
-  if (!['notice', 'create', 'update'].includes(input.action)) throw Error('Unknown action');
+  if (!['notice', 'maintenance', 'create', 'update', 'edit', 'delete'].includes(input.action)) throw Error('Unknown action');
+  const validText = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max;
   if (input.action === 'notice') {
     if (typeof input.message !== 'string' || input.message.length > 1000) throw Error('안내 문구는 1,000자 이내로 입력하세요.');
     s.notice = input.message.trim();
+  } else if (input.action === 'maintenance') {
+    if (typeof input.enabled !== 'boolean') throw Error('점검 상태를 확인하세요.');
+    s.maintenance = input.enabled;
   } else if (input.action === 'create') {
-    if (!input.title?.trim() || !input.message?.trim()) throw Error('제목과 내용을 입력하세요.');
+    if (!validText(input.title,120) || !validText(input.message,2000)) throw Error('제목과 내용을 확인하세요.');
     s.incidents.unshift({ id: crypto.randomUUID(), title: input.title.trim().slice(0, 120), startedAt: now,
       resolvedAt: null, automatic: false, updates: [{ at: now, stage: 'investigating', message: input.message.trim().slice(0, 2000) }] });
+  } else if (input.action === 'edit' || input.action === 'delete') {
+    const item = s.incidents.find(i => i.id === input.id);
+    if (!item || item.automatic) throw Error('자동 연결 기록은 수정하거나 삭제할 수 없습니다.');
+    if (input.action === 'delete') s.incidents = s.incidents.filter(i => i.id !== item.id);
+    else {
+      if (!validText(input.title,120) || !validText(input.message,2000)) throw Error('제목과 내용을 확인하세요.');
+      item.title = input.title.trim();
+      // Edit the original notice, retaining subsequent progress/recovery updates.
+      item.updates[item.updates.length-1].message = input.message.trim();
+      item.editedAt = now;
+    }
   } else {
     const item = s.incidents.find(i => i.id === input.id);
     if (!item) throw Error('장애 기록을 찾지 못했습니다.');
     if (item.resolvedAt) throw Error('이미 종료된 기록입니다.');
     if (!['investigating', 'identified', 'monitoring', 'resolved'].includes(input.stage)) throw Error('잘못된 진행 상태입니다.');
     if (item.automatic && input.stage === 'resolved' && s.state !== 'online') throw Error('봇 연결이 복구되면 자동으로 해결 처리됩니다.');
-    if (!input.message?.trim()) throw Error('업데이트 내용을 입력하세요.');
+    if (!validText(input.message,2000)) throw Error('업데이트 내용을 확인하세요.');
     item.updates.unshift({ at: now, stage: input.stage, message: input.message.trim().slice(0, 2000) });
     item.updates = item.updates.slice(0, 50);
     if (input.stage === 'resolved') item.resolvedAt = now;
@@ -98,8 +114,10 @@ export function publicState(s, now) {
   compact(s, now);
   const active = s.incidents.filter(i => !i.resolvedAt);
   const automatic = active.find(i => i.automatic);
-  return { state: s.state, title: TITLES[s.state], lastSeen: s.lastSeen, checkedAt: now, timeoutSeconds: TIMEOUT / 1000,
-    message: s.state === 'online' ? '밴타봇이 카카오톡에 연결되어 있습니다.' :
+  const displayState = s.maintenance ? 'maintenance' : s.state;
+  return { state: displayState, title: TITLES[displayState], maintenance: Boolean(s.maintenance), lastSeen: s.lastSeen, checkedAt: now, timeoutSeconds: TIMEOUT / 1000,
+    message: displayState === 'maintenance' ? MAINTENANCE_MESSAGE :
+      s.state === 'online' ? '밴타봇이 카카오톡에 연결되어 있습니다.' :
       s.state === 'unknown' ? '아직 봇 상태 보고를 받지 못했습니다.' :
       automatic?.updates[0]?.message || (s.ban ? BAN_MESSAGE : DEFAULT_MESSAGE),
     notice: s.notice, incidents: s.incidents, days: s.days, revision: s.revision };

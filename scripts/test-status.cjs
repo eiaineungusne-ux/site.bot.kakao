@@ -36,22 +36,26 @@ test('administrator can load, publish a notice and clear credentials on logout',
   const w=dom.window; w.AbortSignal=AbortSignal; const calls=[];
   w.fetch=async(url,options)=>({ok:true,json:async()=>{
     if(String(url).includes('status-config'))return {apiBase:'https://status.example'};
-    const payload=JSON.parse(options.body); calls.push(payload);
-    assert.equal(options.headers.Authorization,'Bearer fake-test-token');
-    return {notice:payload.message||'',incidents:[]};
+    const payload=JSON.parse(options.body); calls.push({url:String(url),payload,authorization:options.headers.Authorization});
+    if (String(url).endsWith('/login')) return {token:'a'.repeat(64),expiresAt:Date.now()+60000};
+    assert.equal(options.headers.Authorization,'Bearer '+'a'.repeat(64));
+    return {notice:payload.message||'',maintenance:Boolean(payload.enabled),incidents:[]};
   }});
   try {
     let admin=fs.readFileSync(path.join(root,'assets/status-admin.js'),'utf8').replace(/^import .*\n/,'').replace("const $ = id => document.getElementById(id);",'');
     w.eval(code+'\n{'+admin+'}');
     w.document.getElementById('token').value='fake-test-token';
     w.document.getElementById('auth-form').dispatchEvent(new w.Event('submit',{cancelable:true})); await flush();
-    assert.equal(calls[0].action,'read');
+    assert.equal(calls[0].url,'https://status.example/login');
+    assert.equal(calls[1].payload.action,'read');
     assert.equal(w.document.getElementById('admin-panels').hidden,false);
     assert.equal(w.document.getElementById('token').value,'');
     w.document.getElementById('notice').value='점검 안내';
     w.document.getElementById('notice-form').dispatchEvent(new w.Event('submit',{cancelable:true})); await flush();
-    assert.deepEqual(calls[1],{action:'notice',message:'점검 안내'});
-    w.document.getElementById('logout').click();
+    assert.deepEqual(calls[2].payload,{action:'notice',message:'점검 안내'});
+    w.document.getElementById('maintenance').click(); await flush();
+    assert.deepEqual(calls[3].payload,{action:'maintenance',enabled:true});
+    w.document.getElementById('logout').click(); await flush();
     assert.equal(w.document.getElementById('admin-panels').hidden,true);
     assert.equal(w.localStorage.length,0);
   } finally {w.close();}

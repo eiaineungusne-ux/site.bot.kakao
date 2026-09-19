@@ -1,44 +1,65 @@
-import { apiBase, renderIncidents } from './status.js?v=20260919';
+import { apiBase, renderIncidents } from './status.js?v=20260920';
 const $ = id => document.getElementById(id);
-let token = '', api = '', busy = false;
+let token = '', api = '', busy = false, records = [], expiryTimer;
 function show(message, ok = false) { $('admin-result').textContent = message; $('admin-result').className = ok ? 'status-ok' : 'status-error'; }
-function render(data) {
-  $('notice').value = data.notice || '';
-  const select = $('incident-id'); select.replaceChildren();
-  for (const item of data.incidents.filter(i => !i.resolvedAt)) {
+function resetLogin() {
+  token = ''; clearTimeout(expiryTimer); records = [];
+  $('token').value = ''; $('admin-panels').hidden = true; $('auth-form').hidden = false; $('logout').hidden = true;
+  document.body.classList.remove('authenticated'); $('admin-incidents').replaceChildren();
+}
+function selectedNotice() {
+  const item = records.find(i => i.id === $('manage-id').value);
+  $('edit-title').value = item?.title || '';
+  $('edit-message').value = item?.updates.at(-1)?.message || '';
+  $('edit-fields').disabled = !item;
+}
+function populate(id, items) {
+  const select = $(id), previous = select.value; select.replaceChildren();
+  for (const item of items) {
     const option = document.createElement('option'); option.value = item.id; option.textContent = item.title; select.append(option);
   }
-  renderIncidents($('admin-incidents'), data.incidents);
+  if (items.some(i => i.id === previous)) select.value = previous;
+  if (!items.length) { const option = document.createElement('option'); option.value = ''; option.textContent = '등록된 공지가 없습니다'; select.append(option); }
 }
-async function request(payload) {
+function render(data) {
+  records = data.incidents; $('notice').value = data.notice || '';
+  $('maintenance').checked = Boolean(data.maintenance);
+  $('maintenance-state').textContent = data.maintenance ? '점검중' : '정상 표시';
+  populate('incident-id', records.filter(i => !i.resolvedAt));
+  populate('manage-id', records.filter(i => !i.automatic));
+  selectedNotice(); renderIncidents($('admin-incidents'), records);
+}
+async function request(payload, route = '/admin', credential = token) {
   api ||= await apiBase();
-  const response = await fetch(api + '/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-    body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) });
+  const response = await fetch(api + route, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + credential }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) });
   const result = await response.json();
-  if (!response.ok) throw Error(result.error || '저장 실패');
+  if (!response.ok) { if (response.status === 401 && route === '/admin') resetLogin(); throw Error(result.error || '요청을 처리하지 못했습니다.'); }
   return result;
 }
 async function save(payload) {
-  if (busy) return; busy = true;
-  document.querySelectorAll('button').forEach(b => b.disabled = true);
-  try { render(await request(payload)); show('공개 상태 페이지에 반영했습니다.', true); }
+  if (busy) return; busy = true; document.querySelectorAll('button,input[type="checkbox"]').forEach(x => x.disabled = true);
+  try { render(await request(payload)); show(payload.action === 'delete' ? '공지를 삭제했습니다.' : '저장했습니다.', true); }
   catch (error) { show(error.message); }
-  finally { busy = false; document.querySelectorAll('button').forEach(b => b.disabled = false); }
+  finally { busy = false; document.querySelectorAll('button,input[type="checkbox"]').forEach(x => x.disabled = false); }
 }
 $('auth-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  if (busy) return;
-  busy = true;
-  token = $('token').value;
-  $('token').value = '';
+  event.preventDefault(); if (busy) return; busy = true;
+  let password = $('token').value; $('token').value = '';
   try {
+    const session = await request({}, '/login', password); password = ''; token = session.token;
     const data = await request({ action: 'read' });
-    $('token').value = ''; $('auth-form').hidden = true; $('logout').hidden = false; $('admin-panels').hidden = false;
-    render(data); show('관리자 권한을 확인했습니다.', true);
-  } catch (error) { token = ''; show(error.message); }
-  finally { busy = false; }
+    $('auth-form').hidden = true; $('logout').hidden = false; $('admin-panels').hidden = false; document.body.classList.add('authenticated');
+    clearTimeout(expiryTimer); expiryTimer = setTimeout(() => { resetLogin(); show('다시 로그인해 주세요.'); }, Math.max(0, Math.min(30 * 60000, session.expiresAt - Date.now())));
+    render(data); show('');
+  } catch (error) { resetLogin(); show(error.message); }
+  finally { password = ''; busy = false; }
 });
-$('logout').addEventListener('click', () => { token = ''; $('token').value = ''; $('admin-panels').hidden = true; $('auth-form').hidden = false; $('logout').hidden = true; show('로그아웃했습니다.', true); });
+$('logout').addEventListener('click', async () => { const credential = token; resetLogin(); try { await request({}, '/logout', credential); } catch {} show('로그아웃했습니다.', true); });
+$('maintenance').addEventListener('change', () => save({ action: 'maintenance', enabled: $('maintenance').checked }));
 $('notice-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'notice', message: $('notice').value }); });
+$('notice-delete').addEventListener('click', () => { if (confirm('운영 안내를 삭제할까요?')) save({action:'notice',message:''}); });
 $('create-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'create', title: $('incident-title').value, message: $('incident-message').value }); });
 $('update-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'update', id: $('incident-id').value, stage: $('stage').value, message: $('update-message').value }); });
+$('manage-id').addEventListener('change', selectedNotice);
+$('edit-form').addEventListener('submit', event => { event.preventDefault(); save({action:'edit',id:$('manage-id').value,title:$('edit-title').value,message:$('edit-message').value}); });
+$('notice-remove').addEventListener('click', () => { if ($('manage-id').value && confirm('이 공지를 삭제할까요? 삭제한 공지는 복구할 수 없습니다.')) save({action:'delete',id:$('manage-id').value}); });

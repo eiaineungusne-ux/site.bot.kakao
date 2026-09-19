@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const labels = { online: '정상', offline: '연결 끊김', permanent_ban: '영구 이용제한', unknown: '확인 중' };
+const labels = { online: '정상', offline: '연결 끊김', permanent_ban: '영구 이용제한', maintenance: '점검중', unknown: '확인 중' };
 const stages = { investigating: '확인 중', identified: '원인 확인', monitoring: '복구 확인 중', resolved: '해결됨' };
 const date = at => new Date(at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
 let api, working = false;
@@ -20,11 +20,15 @@ export function renderIncidents(container, items) {
     const card = node('article', '', 'incident');
     card.append(node('span', item.resolvedAt ? '해결됨' : '진행 중', 'incident-tag' + (item.resolvedAt ? ' resolved' : '')),
       node('h3', item.title));
-    for (const update of item.updates) {
+    const previous = node('details', '');
+    if (item.updates.length > 1) previous.append(node('summary', '이전 업데이트 ' + (item.updates.length - 1) + '개'));
+    for (const [index, update] of item.updates.entries()) {
       const row = node('div', '', 'incident-update');
       const time = node('time', date(update.at)); time.dateTime = new Date(update.at).toISOString();
-      row.append(node('strong', stages[update.stage] || '안내'), node('p', update.message), time); card.append(row);
+      row.append(node('strong', stages[update.stage] || '안내'), node('p', update.message), time);
+      (index === 0 ? card : previous).append(row);
     }
+    if (item.updates.length > 1) card.append(previous);
     container.append(card);
   }
 }

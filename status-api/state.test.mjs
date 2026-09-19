@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { initial, heartbeat, publicState, adminUpdate, TIMEOUT, BAN_MESSAGE } from './state.mjs';
+import { initial, heartbeat, publicState, adminUpdate, TIMEOUT, BAN_MESSAGE, MAINTENANCE_MESSAGE } from './state.mjs';
 import worker, { BotStatus } from './worker.mjs';
-import { authorizeAdmin } from './admin-auth.mjs';
+import { authorizeAdmin, createSession } from './admin-auth.mjs';
 test('no heartbeat means unknown, not a fabricated outage', () => {
   assert.equal(publicState(initial(), Date.now()).state, 'unknown');
 });
@@ -26,6 +26,16 @@ test('new outage copy and legacy automatic records, preserving admin notes', () 
   assert.equal(view.incidents[0].title,'서버 연결이 끊어졌어요.');
   assert.equal(view.incidents[0].updates[1].message,'관리자가 원인을 분석하고 있어요');
   assert.equal(view.message,'운영자 직접 작성');
+});
+test('maintenance overrides the public banner without corrupting live connection state', () => {
+  const s=initial(); heartbeat(s,{connected:false,permanentBan:false},1000);
+  adminUpdate(s,{action:'maintenance',enabled:true},2000);
+  assert.equal(publicState(s,2000).state,'maintenance');
+  assert.equal(publicState(s,2000).message,MAINTENANCE_MESSAGE);
+  heartbeat(s,{connected:true,permanentBan:false},3000);
+  assert.equal(publicState(s,3000).state,'maintenance');
+  adminUpdate(s,{action:'maintenance',enabled:false},4000);
+  assert.equal(publicState(s,4000).state,'online');
 });
 test('permanent restriction persists until successful connection', () => {
   const s = initial(); heartbeat(s, {connected:false,permanentBan:true}, 1000);
@@ -75,13 +85,27 @@ test('heartbeat authentication and origin validation happen before storage', asy
 test('admin read, update and request bounds in storage handler', async () => {
   const values=new Map();
   const tx={get:async key=>structuredClone(values.get(key)),put:async(key,value)=>{values.set(key,structuredClone(value));},setAlarm:async()=>{},deleteAlarm:async()=>{}};
-  const handler=new BotStatus({storage:{transaction:fn=>fn(tx)}},{ADMIN_PASSWORD:'test-password'});
-  const call=body=>handler.fetch(new Request('https://status.test/admin',{method:'POST',headers:{Authorization:'Bearer test-password'},body:JSON.stringify(body)}));
+  const storage={transaction:fn=>fn(tx)}, env={ADMIN_PASSWORD:'test-password'};
+  const session=await createSession(env,storage);
+  const handler=new BotStatus({storage},env);
+  const call=body=>handler.fetch(new Request('https://status.test/admin',{method:'POST',headers:{Authorization:'Bearer '+session.token},body:JSON.stringify(body)}));
   let res=await call({action:'read'});
   assert.equal(res.status,200); assert.equal((await res.json()).state,'unknown');
   res=await call({action:'notice',message:'점검 중'});
   assert.equal((await res.json()).notice,'점검 중');
   assert.equal((await call({action:'notice',message:'x'.repeat(13000)})).status,413);
+});
+test('manual notices can be edited and deleted while automatic records are protected', () => {
+  const s=initial();
+  adminUpdate(s,{action:'create',title:'점검 공지',message:'처음 내용'},1000);
+  const id=s.incidents[0].id;
+  adminUpdate(s,{action:'edit',id,title:'수정 공지',message:'수정된 내용'},2000);
+  assert.equal(s.incidents[0].title,'수정 공지');
+  assert.equal(s.incidents[0].updates[0].message,'수정된 내용');
+  adminUpdate(s,{action:'delete',id},3000);
+  assert.equal(s.incidents.length,0);
+  heartbeat(s,{connected:false,permanentBan:false},4000);
+  assert.throws(()=>adminUpdate(s,{action:'delete',id:s.incidents[0].id},5000));
 });
 test('server password is required and failed guesses are rate limited', async () => {
   const values=new Map(), tx={get:async key=>structuredClone(values.get(key)),put:async(key,value)=>values.set(key,structuredClone(value))};

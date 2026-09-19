@@ -1,5 +1,5 @@
 import { initial, heartbeat, expire, publicState, adminUpdate, TIMEOUT } from './state.mjs';
-import { equalSecret, authorizeAdmin } from './admin-auth.mjs';
+import { equalSecret, authorizeAdmin, createSession, checkSession } from './admin-auth.mjs';
 const json = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 export default {
   async fetch(request, env) {
@@ -20,7 +20,7 @@ export default {
           : json({ error: '인증 실패' }, 401);
       } else if (url.pathname === '/status' && request.method === 'GET') {
         response = await env.STATUS.get(env.STATUS.idFromName('ventabot')).fetch(request);
-      } else if (url.pathname === '/admin' && request.method === 'POST') {
+      } else if (['/admin', '/login', '/logout'].includes(url.pathname) && request.method === 'POST') {
         response = request.headers.get('Authorization')?.startsWith('Bearer ')
           ? await env.STATUS.get(env.STATUS.idFromName('ventabot')).fetch(request)
           : json({ error: '관리자 비밀번호를 입력하세요.' }, 401);
@@ -29,6 +29,8 @@ export default {
     const headers = new Headers(response.headers);
     for (const [key, value] of Object.entries(cors)) headers.set(key, value);
     headers.set('X-Content-Type-Options', 'nosniff');
+    headers.set('Referrer-Policy', 'no-referrer');
+    headers.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
     return new Response(response.body, { status: response.status, headers });
   }
 };
@@ -43,9 +45,14 @@ export class BotStatus {
   }
   async fetch(request) {
     const route = new URL(request.url).pathname;
-    if (route === '/admin') {
+    if (route === '/login') {
       const status = await authorizeAdmin(request, this.env, this.ctx.storage);
       if (status !== 200) return json({ error: status === 429 ? '로그인 시도가 너무 많습니다. 15분 후 다시 시도하세요.' : status === 503 ? '관리자 비밀번호가 아직 설정되지 않았습니다.' : '비밀번호가 올바르지 않습니다.' }, status);
+      return json(await createSession(this.env, this.ctx.storage));
+    }
+    if (route === '/admin' || route === '/logout') {
+      if (!await checkSession(request, this.env, this.ctx.storage, route === '/logout')) return json({ error: '다시 로그인해 주세요.' }, 401);
+      if (route === '/logout') return json({ ok: true });
     }
     let input;
     if (request.method === 'POST') {
