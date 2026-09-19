@@ -4,7 +4,7 @@
 <script type="module" src="/assets/status-admin.js?v=20260919"></script></head><body>
 <header class="nav"><div class="wrap nav-inner"><a class="brand" href="/">Venta <span>×</span> Void</a><nav class="nav-links"><a href="/ventabot/status/">공개 상태</a><a href="/admin/">약관 관리</a></nav></div></header>
 <main class="status-wrap"><div class="status-heading"><p class="eyebrow">STATUS ADMIN</p><h1>서버 상태 관리</h1><p>운영 안내와 장애 해결 과정을 알려 주세요.</p></div>
-<section class="status-card"><form id="auth-form" class="status-form"><label>관리자 비밀번호<input id="token" type="password" autocomplete="off" maxlength="512" required></label><p class="status-help">비밀번호는 암호화된 연결로 서버에서만 확인합니다. 이 페이지나 브라우저 저장소에 저장하지 않습니다. 로그인에 여러 번 실패하면 15분간 제한됩니다.</p><button class="button" type="submit">로그인</button></form><button id="logout" class="status-quiet" hidden>로그아웃</button></section>
+<section class="status-card"><form id="auth-form" class="status-form"><label>관리자 비밀번호<input id="token" type="password" autocomplete="off" maxlength="512" required></label><button class="button" type="submit">로그인</button></form><button id="logout" class="status-quiet" hidden>로그아웃</button></section>
 <p id="admin-result" role="status" aria-live="polite"></p>
 <div id="admin-panels" hidden>
 <section class="status-card"><h2>공통 운영 안내</h2><p class="status-help">공개 페이지에 별도 안내로 표시합니다. 비우고 저장하면 숨겨집니다.</p><form id="notice-form" class="status-form"><label>안내 문구<textarea id="notice" maxlength="1000"></textarea></label><button class="button">저장</button></form></section>
