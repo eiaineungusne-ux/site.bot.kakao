@@ -72,7 +72,7 @@ export class BotStatus {
       const raw = new TextDecoder().decode(bytes);
       try { input = JSON.parse(raw); } catch { return json({ error: '잘못된 JSON' }, 400); }
       if (!input || typeof input !== 'object') return json({ error: '잘못된 요청' }, 400);
-      if (route === '/heartbeat' && (typeof input.connected !== 'boolean' || typeof input.permanentBan !== 'boolean')) return json({ error: '잘못된 상태 보고' }, 400);
+      if (route === '/heartbeat' && (typeof input.connected !== 'boolean' || (!['none', 'permanent', 'temporary', 'openchat'].includes(input.restriction) && typeof input.permanentBan !== 'boolean'))) return json({ error: '잘못된 상태 보고' }, 400);
     }
     try {
       return await this.ctx.storage.transaction(async tx => {

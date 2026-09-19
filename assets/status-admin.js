@@ -1,4 +1,4 @@
-import { apiBase, renderIncidents } from './status.js?v=20260920';
+import { apiBase, renderIncidents } from './status.js?v=20260922';
 const $ = id => document.getElementById(id);
 let token = '', api = '', busy = false, records = [], expiryTimer;
 function show(message, ok = false) { $('admin-result').textContent = message; $('admin-result').className = ok ? 'status-ok' : 'status-error'; }
@@ -23,10 +23,10 @@ function populate(id, items) {
 }
 function render(data) {
   records = data.incidents; $('notice').value = data.notice || '';
-  $('maintenance').checked = Boolean(data.maintenance);
-  $('maintenance-state').textContent = data.maintenance ? '점검중' : '정상 표시';
+  $('display-state').value = data.manual?.state || 'auto';
+  $('display-message').value = data.manual?.message || '';
   populate('incident-id', records.filter(i => !i.resolvedAt));
-  populate('manage-id', records.filter(i => !i.automatic));
+  populate('manage-id', records);
   selectedNotice(); renderIncidents($('admin-incidents'), records);
 }
 async function request(payload, route = '/admin', credential = token) {
@@ -37,10 +37,10 @@ async function request(payload, route = '/admin', credential = token) {
   return result;
 }
 async function save(payload) {
-  if (busy) return; busy = true; document.querySelectorAll('button,input[type="checkbox"]').forEach(x => x.disabled = true);
+  if (busy) return; busy = true; document.querySelectorAll('button,input,select,textarea').forEach(x => x.disabled = true);
   try { render(await request(payload)); show(payload.action === 'delete' ? '공지를 삭제했습니다.' : '저장했습니다.', true); }
   catch (error) { show(error.message); }
-  finally { busy = false; document.querySelectorAll('button,input[type="checkbox"]').forEach(x => x.disabled = false); }
+  finally { busy = false; document.querySelectorAll('button,input,select,textarea').forEach(x => x.disabled = false); }
 }
 $('auth-form').addEventListener('submit', async event => {
   event.preventDefault(); if (busy) return; busy = true;
@@ -55,7 +55,7 @@ $('auth-form').addEventListener('submit', async event => {
   finally { password = ''; busy = false; }
 });
 $('logout').addEventListener('click', async () => { const credential = token; resetLogin(); try { await request({}, '/logout', credential); } catch {} show('로그아웃했습니다.', true); });
-$('maintenance').addEventListener('change', () => save({ action: 'maintenance', enabled: $('maintenance').checked }));
+$('display-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'display', state: $('display-state').value, message: $('display-message').value }); });
 $('notice-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'notice', message: $('notice').value }); });
 $('notice-delete').addEventListener('click', () => { if (confirm('운영 안내를 삭제할까요?')) save({action:'notice',message:''}); });
 $('create-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'create', title: $('incident-title').value, message: $('incident-message').value }); });

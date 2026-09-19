@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>밴타봇 상태 관리</title>
-<link rel="stylesheet" href="/assets/site.css?v=20260918-2"><link rel="stylesheet" href="/assets/status.css?v=20260921">
-<script type="module" src="/assets/status-admin.js?v=20260920"></script></head>
+<link rel="stylesheet" href="/assets/site.css?v=20260918-2"><link rel="stylesheet" href="/assets/status.css?v=20260922">
+<script type="module" src="/assets/status-admin.js?v=20260922"></script></head>
 <body class="status-page admin-page">
 <a class="skip" href="#main">본문으로 건너뛰기</a>
 <header class="nav"><div class="wrap nav-inner"><a class="brand" href="/">Venta <span>×</span> Void</a><nav class="nav-links" aria-label="주 메뉴"><a href="/ventabot/status/">서버 상태</a><a href="/admin/">약관 관리</a></nav></div></header>
@@ -11,7 +11,7 @@
   <section class="status-card login-card"><form id="auth-form" class="status-form"><label>관리자 비밀번호<input id="token" type="password" autocomplete="off" maxlength="512" required></label><button class="button" type="submit">로그인</button></form><button id="logout" class="status-quiet" hidden>로그아웃</button></section>
   <p id="admin-result" role="status" aria-live="polite"></p>
   <div id="admin-panels" hidden>
-    <section class="status-card maintenance-card"><div><h2>점검 모드</h2><p>켜면 공개 상태가 서버 점검중으로 표시됩니다.</p></div><label class="switch"><input id="maintenance" type="checkbox"><span aria-hidden="true"></span><b id="maintenance-state">정상 표시</b></label></section>
+    <section class="status-card"><h2>공개 표시 상태</h2><form id="display-form" class="status-form"><label>상태<select id="display-state"><option value="auto">자동 감지</option><option value="online">정상 운영 중</option><option value="offline">서버 연결이 끊어졌어요.</option><option value="maintenance">서버 점검중</option><option value="permanent_ban">카카오 영구정지</option><option value="temporary_ban">카카오톡 임시제한</option><option value="openchat_ban">오픈채팅 정지</option></select></label><label>안내 문구 (선택)<textarea id="display-message" maxlength="1000" placeholder="비우면 기본 안내가 표시됩니다."></textarea></label><button class="button">표시 상태 적용</button></form></section>
     <div class="admin-grid">
       <section class="status-card"><h2>운영 안내</h2><form id="notice-form" class="status-form"><label>내용<textarea id="notice" maxlength="1000" placeholder="상태 페이지에 표시할 안내"></textarea></label><div class="form-actions"><button class="button">저장</button><button type="button" class="status-quiet danger" id="notice-delete">삭제</button></div></form></section>
       <section class="status-card"><h2>새 공지</h2><form id="create-form" class="status-form"><label>제목<input id="incident-title" maxlength="120" required></label><label>내용<textarea id="incident-message" maxlength="2000" required></textarea></label><button class="button">공지 등록</button></form></section>

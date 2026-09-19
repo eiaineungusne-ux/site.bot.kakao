@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const labels = { online: '정상', offline: '연결 끊김', permanent_ban: '영구 이용제한', maintenance: '점검중', unknown: '확인 중' };
+const labels = { online: '정상', offline: '연결 끊김', permanent_ban: '영구정지', temporary_ban: '임시제한', openchat_ban: '오픈채팅 정지', maintenance: '점검중', unknown: '확인 중' };
 const stages = { investigating: '확인 중', identified: '원인 확인', monitoring: '복구 확인 중', resolved: '해결됨' };
 const date = at => new Date(at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
 let api, working = false;
@@ -40,10 +40,10 @@ function render(s) {
   $('status-meta').textContent = (s.lastSeen ? '마지막 상태 보고: ' + date(s.lastSeen) : '아직 상태 보고 없음') + ' · 30초마다 갱신';
   $('status-notice').hidden = !s.notice; $('notice-message').textContent = s.notice || '';
   const bars = $('history-bars'); bars.replaceChildren();
-  for (let i = 29; i >= 0; i--) {
-    const key = new Date(s.checkedAt + 9 * 3600000 - i * 86400000).toISOString().slice(0,10);
-    const value = Object.hasOwn(labels, s.days[key]) ? s.days[key] : 'unknown';
-    const bar = node('span', '', value); bar.title = key + ': ' + (value === 'unknown' ? '기록 없음' : labels[value]); bar.tabIndex = 0;
+  for (let i = 23; i >= 0; i--) {
+    const key = new Date(s.checkedAt + 9 * 3600000 - i * 3600000).toISOString().slice(0,13);
+    const value = Object.hasOwn(labels, s.hours?.[key]) ? s.hours[key] : 'unknown';
+    const bar = node('span', '', value); bar.title = key.replace('T', ' ') + ':00 · ' + (value === 'unknown' ? '기록 없음' : labels[value]); bar.tabIndex = 0;
     bar.setAttribute('aria-label', bar.title); bars.append(bar);
   }
   renderIncidents($('incidents'), s.incidents);

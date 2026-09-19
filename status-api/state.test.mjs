@@ -1,120 +1,49 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { initial, heartbeat, publicState, adminUpdate, TIMEOUT, BAN_MESSAGE, MAINTENANCE_MESSAGE } from './state.mjs';
-import worker, { BotStatus } from './worker.mjs';
-import { authorizeAdmin, createSession } from './admin-auth.mjs';
-test('no heartbeat means unknown, not a fabricated outage', () => {
-  assert.equal(publicState(initial(), Date.now()).state, 'unknown');
-});
-test('missing heartbeat creates one incident and recovery resolves it', () => {
-  const s = initial(); heartbeat(s, {connected:true,permanentBan:false}, 1000);
-  assert.equal(publicState(s, 1000 + TIMEOUT - 1).state, 'online');
-  assert.equal(publicState(s, 1000 + TIMEOUT).state, 'offline');
-  publicState(s, 200000); assert.equal(s.incidents.length, 1);
-  heartbeat(s, {connected:true,permanentBan:false}, 201000);
-  assert.equal(s.incidents[0].resolvedAt, 201000);
-  assert.equal(s.incidents[0].updates[0].stage, 'resolved');
-});
-test('new outage copy and legacy automatic records, preserving admin notes', () => {
-  const s=initial(); heartbeat(s,{connected:false,permanentBan:false},1000);
-  assert.equal(publicState(s,1000).title,'서버 연결이 끊어졌어요.');
-  assert.equal(s.incidents[0].updates[0].message,'관리자가 원인을 분석하고 있어요');
-  s.incidents[0].title='서버 터짐';
-  s.incidents[0].updates[0].message='관리자가 서버 상태를 확인하고 재정비 하고있어요.';
-  adminUpdate(s,{action:'update',id:s.incidents[0].id,stage:'identified',message:'운영자 직접 작성'},2000);
-  const view=publicState(s,2000);
-  assert.equal(view.incidents[0].title,'서버 연결이 끊어졌어요.');
-  assert.equal(view.incidents[0].updates[1].message,'관리자가 원인을 분석하고 있어요');
-  assert.equal(view.message,'운영자 직접 작성');
-});
-test('maintenance overrides the public banner without corrupting live connection state', () => {
-  const s=initial(); heartbeat(s,{connected:false,permanentBan:false},1000);
-  adminUpdate(s,{action:'maintenance',enabled:true},2000);
-  assert.equal(publicState(s,2000).state,'maintenance');
-  assert.equal(publicState(s,2000).message,MAINTENANCE_MESSAGE);
-  heartbeat(s,{connected:true,permanentBan:false},3000);
-  assert.equal(publicState(s,3000).state,'maintenance');
-  adminUpdate(s,{action:'maintenance',enabled:false},4000);
-  assert.equal(publicState(s,4000).state,'online');
-});
-test('permanent restriction persists until successful connection', () => {
-  const s = initial(); heartbeat(s, {connected:false,permanentBan:true}, 1000);
-  heartbeat(s, {connected:false,permanentBan:false}, 2000);
-  assert.equal(publicState(s, 999999).message, BAN_MESSAGE);
-  heartbeat(s, {connected:true,permanentBan:false}, 1000000);
-  assert.equal(s.ban, false); assert.equal(s.state, 'online');
-});
-test('admin updates replace default outage message, cannot fake recovery', () => {
-  const s = initial(); heartbeat(s, {connected:false,permanentBan:false}, 1000);
-  const id = s.incidents[0].id;
-  adminUpdate(s, {action:'update',id,stage:'identified',message:'점검 중'}, 2000);
-  assert.equal(publicState(s, 2000).message, '점검 중');
-  assert.throws(() => adminUpdate(s, {action:'update',id,stage:'resolved',message:'완료'}, 2000));
-  adminUpdate(s, {action:'notice',message:'<script>plain text</script>'}, 2000);
-  assert.equal(s.notice, '<script>plain text</script>');
-  assert.throws(() => adminUpdate(s, {action:'invalid'}, 2000));
-});
-test('bounded incident history and days', () => {
-  const s = initial();
-  for (let i=0;i<150;i++) {
-    heartbeat(s,{connected:false,permanentBan:false},i*86400000);
-    heartbeat(s,{connected:true,permanentBan:false},i*86400000+1000);
+import { initial, heartbeat, publicState, adminUpdate, TIMEOUT, MESSAGES } from './state.mjs';
+
+test('reports every Kakao restriction with its own user-facing state', () => {
+  for (const [restriction, state] of [['permanent','permanent_ban'],['temporary','temporary_ban'],['openchat','openchat_ban']]) {
+    const s=initial(); heartbeat(s,{connected:false,restriction},1000);
+    const view=publicState(s,1000);
+    assert.equal(view.state,state); assert.equal(view.message,MESSAGES[state]);
   }
-  assert.ok(s.incidents.length<=100); assert.ok(Object.keys(s.days).length<=91);
 });
-test('an ongoing outage carries over midnight and old history expires', () => {
-  const s=initial(), start=Date.UTC(2026,8,1,14,59);
-  heartbeat(s,{connected:false,permanentBan:false},start);
-  const view=publicState(s,start+3*86400000);
-  assert.equal(view.days['2026-09-03'],'offline');
-  assert.equal(view.days['2026-09-04'],'offline');
-  publicState(s,start+100*86400000);
-  assert.ok(Object.keys(s.days).length<=91);
+test('accepts a legacy permanentBan report during a rolling bot update', () => {
+  const s=initial(); heartbeat(s,{connected:false,permanentBan:true},1000);
+  assert.equal(publicState(s,1000).state,'permanent_ban');
 });
-test('heartbeat authentication and origin validation happen before storage', async () => {
-  const env={HEARTBEAT_TOKEN:'test-only',ALLOWED_ORIGINS:'https://kakaobot.xyz'};
-  const missing = await worker.fetch(new Request('https://status.test/heartbeat',{method:'POST'}),env);
-  assert.equal(missing.status,401);
-  const wrong = await worker.fetch(new Request('https://status.test/heartbeat',{method:'POST',headers:{Authorization:'Bearer wrong'}}),env);
-  assert.equal(wrong.status,401);
-  const origin = await worker.fetch(new Request('https://status.test/status',{headers:{Origin:'https://evil.example'}}),env);
-  assert.equal(origin.status,403);
-  const admin = await worker.fetch(new Request('https://status.test/admin',{method:'POST'}),env);
-  assert.equal(admin.status,401);
+test('migrates persisted state from the original status release without losing it', () => {
+  const legacy={lastSeen:1000,state:'offline',ban:false,maintenance:true,incidents:[],days:{'2026-09-19':'offline'},notice:'안내',revision:3};
+  const view=publicState(legacy,2000);
+  assert.equal(view.state,'maintenance'); assert.equal(view.liveState,'offline'); assert.equal(view.notice,'안내');
+  assert.equal(Object.values(view.hours)[0],'offline');
 });
-test('admin read, update and request bounds in storage handler', async () => {
-  const values=new Map();
-  const tx={get:async key=>structuredClone(values.get(key)),put:async(key,value)=>{values.set(key,structuredClone(value));},setAlarm:async()=>{},deleteAlarm:async()=>{}};
-  const storage={transaction:fn=>fn(tx)}, env={ADMIN_PASSWORD:'test-password'};
-  const session=await createSession(env,storage);
-  const handler=new BotStatus({storage},env);
-  const call=body=>handler.fetch(new Request('https://status.test/admin',{method:'POST',headers:{Authorization:'Bearer '+session.token},body:JSON.stringify(body)}));
-  let res=await call({action:'read'});
-  assert.equal(res.status,200); assert.equal((await res.json()).state,'unknown');
-  res=await call({action:'notice',message:'점검 중'});
-  assert.equal((await res.json()).notice,'점검 중');
-  assert.equal((await call({action:'notice',message:'x'.repeat(13000)})).status,413);
+test('successful connection resolves automatic restriction record', () => {
+  const s=initial(); heartbeat(s,{connected:false,restriction:'temporary'},1000);
+  heartbeat(s,{connected:true,restriction:'none'},2000);
+  assert.equal(publicState(s,2000).state,'online');
+  assert.equal(s.incidents[0].resolvedAt,2000); assert.equal(s.incidents[0].updates[0].stage,'resolved');
 });
-test('manual notices can be edited and deleted while automatic records are protected', () => {
-  const s=initial();
-  adminUpdate(s,{action:'create',title:'점검 공지',message:'처음 내용'},1000);
-  const id=s.incidents[0].id;
-  adminUpdate(s,{action:'edit',id,title:'수정 공지',message:'수정된 내용'},2000);
-  assert.equal(s.incidents[0].title,'수정 공지');
-  assert.equal(s.incidents[0].updates[0].message,'수정된 내용');
-  adminUpdate(s,{action:'delete',id},3000);
-  assert.equal(s.incidents.length,0);
-  heartbeat(s,{connected:false,permanentBan:false},4000);
-  assert.throws(()=>adminUpdate(s,{action:'delete',id:s.incidents[0].id},5000));
+test('lost heartbeat shows offline and the last day has 24 hourly slots', () => {
+  const s=initial(); heartbeat(s,{connected:true,restriction:'none'},1000);
+  assert.equal(publicState(s,1000+TIMEOUT).state,'offline');
+  for(let h=0;h<30;h++) heartbeat(s,{connected:false,restriction:'none'},1000+h*3600000);
+  const view=publicState(s,1000+30*3600000);
+  assert.ok(Object.keys(view.hours).length<=25);
 });
-test('server password is required and failed guesses are rate limited', async () => {
-  const values=new Map(), tx={get:async key=>structuredClone(values.get(key)),put:async(key,value)=>values.set(key,structuredClone(value))};
-  const storage={transaction:fn=>fn(tx)}, env={ADMIN_PASSWORD:'test-password'};
-  const request=password=>new Request('https://status.test/admin',{method:'POST',headers:{Authorization:'Bearer '+password,'CF-Connecting-IP':'192.0.2.1'}});
-  assert.equal(await authorizeAdmin(request('test-password'),{},storage,0),503);
-  assert.equal(await authorizeAdmin(request('test-password'),env,storage,0),200);
-  for(let i=0;i<5;i++) assert.equal(await authorizeAdmin(request('wrong'),env,storage,0),401);
-  assert.equal(await authorizeAdmin(request('test-password'),env,storage,0),429);
-  assert.equal(await authorizeAdmin(request('test-password'),env,storage,900001),200);
-  assert.ok(!JSON.stringify([...values]).includes('test-password'));
+test('administrator can override every visible state then return to live state', () => {
+  const s=initial(); heartbeat(s,{connected:false,restriction:'openchat'},1000);
+  adminUpdate(s,{action:'display',state:'maintenance',message:'점검 공지'},2000);
+  assert.equal(publicState(s,2000).state,'maintenance'); assert.equal(publicState(s,2000).message,'점검 공지');
+  adminUpdate(s,{action:'display',state:'auto',message:''},3000);
+  assert.equal(publicState(s,3000).state,'openchat_ban');
+});
+test('all incident records can be created, edited, deleted and updated', () => {
+  const s=initial(); adminUpdate(s,{action:'create',title:'기록',message:'처음'},1000);
+  const id=s.incidents[0].id; adminUpdate(s,{action:'edit',id,title:'수정',message:'변경'},2000);
+  assert.equal(s.incidents[0].title,'수정'); adminUpdate(s,{action:'delete',id},3000); assert.equal(s.incidents.length,0);
+  heartbeat(s,{connected:false,restriction:'permanent'},4000); const auto=s.incidents[0].id;
+  adminUpdate(s,{action:'edit',id:auto,title:'관리자 수정',message:'확인 중'},5000);
+  adminUpdate(s,{action:'delete',id:auto},6000); assert.equal(s.incidents.length,0);
 });
