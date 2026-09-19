@@ -1,26 +1,25 @@
 import { initial, heartbeat, expire, publicState, adminUpdate, TIMEOUT } from './state.mjs';
 import { equalSecret, authorizeAdmin, createSession, checkSession } from './admin-auth.mjs';
+import { statusDocument, adminDocument } from './site.mjs';
 const json = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const STATUS_HOST = 'venta.kakaobot.xyz';
 const PAGES_ORIGIN = 'https://kakaobot.xyz';
 
-// venta.kakaobot.xyz is a status-only hostname.  The existing Pages project
-// remains the source of the static files, while this Worker chooses the two
-// safe entry points without exposing a general-purpose proxy.
+// venta.kakaobot.xyz is a status-only hostname. The Worker owns both entry
+// documents; only their versioned static assets are read from Pages.
 async function serveStatusSite(request, url) {
   if (!['GET', 'HEAD'].includes(request.method)) {
     return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
   }
 
-  let path = url.pathname;
-  if (path === '/') path = '/ventabot/status/';
-  else if (path === '/admin' || path === '/admin/') path = '/admin/status/';
-  else if (path.startsWith('/admin/status/')) path = path;
+  if (url.pathname === '/' || url.pathname === '/index.html') return statusPage(statusDocument);
+  if (url.pathname === '/admin' || url.pathname === '/admin/' || url.pathname === '/admin/index.html') return statusPage(adminDocument);
+  if (!url.pathname.startsWith('/assets/')) return new Response('Not found', { status: 404 });
 
   // Only static resources that are needed by the status and admin pages are
   // requested from the Pages origin. Query strings are preserved for cache
   // busting, while credentials and user supplied forwarding headers are not.
-  const upstream = new URL(path, PAGES_ORIGIN);
+  const upstream = new URL(url.pathname, PAGES_ORIGIN);
   upstream.search = url.search;
   const response = await fetch(new Request(upstream, {
     method: request.method,
@@ -33,6 +32,16 @@ async function serveStatusSite(request, url) {
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'no-referrer');
   return new Response(response.body, { status: response.status, headers });
+}
+
+function statusPage(document) {
+  return new Response(document, { headers: {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://ventabot-status.haish795.workers.dev; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"
+  } });
 }
 
 export default {
