@@ -13,6 +13,19 @@ test('missing heartbeat creates one incident and recovery resolves it', () => {
   publicState(s, 200000); assert.equal(s.incidents.length, 1);
   heartbeat(s, {connected:true,permanentBan:false}, 201000);
   assert.equal(s.incidents[0].resolvedAt, 201000);
+  assert.equal(s.incidents[0].updates[0].stage, 'resolved');
+});
+test('new outage copy and legacy automatic records, preserving admin notes', () => {
+  const s=initial(); heartbeat(s,{connected:false,permanentBan:false},1000);
+  assert.equal(publicState(s,1000).title,'서버 연결이 끊어졌어요.');
+  assert.equal(s.incidents[0].updates[0].message,'관리자가 원인을 분석하고 있어요');
+  s.incidents[0].title='서버 터짐';
+  s.incidents[0].updates[0].message='관리자가 서버 상태를 확인하고 재정비 하고있어요.';
+  adminUpdate(s,{action:'update',id:s.incidents[0].id,stage:'identified',message:'운영자 직접 작성'},2000);
+  const view=publicState(s,2000);
+  assert.equal(view.incidents[0].title,'서버 연결이 끊어졌어요.');
+  assert.equal(view.incidents[0].updates[1].message,'관리자가 원인을 분석하고 있어요');
+  assert.equal(view.message,'운영자 직접 작성');
 });
 test('permanent restriction persists until successful connection', () => {
   const s = initial(); heartbeat(s, {connected:false,permanentBan:true}, 1000);

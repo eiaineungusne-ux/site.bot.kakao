@@ -1,7 +1,7 @@
 export const TIMEOUT = 90_000;
-export const DEFAULT_MESSAGE = '관리자가 서버 상태를 확인하고 재정비 하고있어요.';
+export const DEFAULT_MESSAGE = '관리자가 원인을 분석하고 있어요';
 export const BAN_MESSAGE = '카카오 영구정지로 인해 관리자가 복구중이에요';
-export const TITLES = { online: '정상 운영 중', offline: '서버 터짐', permanent_ban: '카카오 영구정지', unknown: '상태 확인 중' };
+export const TITLES = { online: '정상 운영 중', offline: '서버 연결이 끊어졌어요.', permanent_ban: '카카오 영구정지', unknown: '상태 확인 중' };
 const day = at => new Date(at + 9 * 3600000).toISOString().slice(0, 10);
 const order = { unknown: 0, online: 1, offline: 2, permanent_ban: 3 };
 function recordDay(s, at, state = s.state) {
@@ -16,6 +16,14 @@ function advance(s, now) {
   for (const key of Object.keys(s.days)) if (key < day(now - 90 * 86400000)) delete s.days[key];
 }
 function compact(s, now) {
+  // Refresh legacy automatic wording without overwriting administrator updates.
+  for (const item of s.incidents) {
+    if (!item.automatic) continue;
+    if (item.title === '서버 터짐') item.title = TITLES.offline;
+    for (const update of item.updates) {
+      if (update.at === item.startedAt && update.stage === 'investigating' && update.message === '관리자가 서버 상태를 확인하고 재정비 하고있어요.') update.message = DEFAULT_MESSAGE;
+    }
+  }
   s.incidents = s.incidents.filter(i => !i.resolvedAt || i.resolvedAt >= now - 90 * 86400000).slice(0, 100);
   for (const item of s.incidents) item.updates = item.updates.slice(0, 50);
   // Durable Object values have a size limit. Keep a bounded public response too.
