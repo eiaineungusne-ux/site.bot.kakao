@@ -1,0 +1,12 @@
+{
+  "name": "ventabot-status",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-19",
+  "workers_dev": true,
+  "vars": {
+    "ADMIN_REPO": "eiaineungusne-ux/site.bot.kakao",
+    "ALLOWED_ORIGINS": "https://kakaobot.xyz,https://www.kakaobot.xyz,http://localhost:8765"
+  },
+  "durable_objects": { "bindings": [{ "name": "STATUS", "class_name": "BotStatus" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BotStatus"] }]
+}

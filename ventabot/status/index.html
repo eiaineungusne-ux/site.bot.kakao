@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>밴타봇 서버 상태 | Venta × Void</title>
+  <meta name="description" content="밴타봇 연결 상태와 장애·복구 소식을 확인하세요.">
+  <link rel="stylesheet" href="/assets/site.css?v=20260918-2">
+  <link rel="stylesheet" href="/assets/status.css?v=20260919">
+  <script type="module" src="/assets/status.js?v=20260919"></script>
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 건너뛰기</a>
+  <header class="nav"><div class="wrap nav-inner"><a class="brand" href="/">Venta <span>×</span> Void</a><nav class="nav-links" aria-label="주 메뉴"><a href="/ventabot/">밴타봇</a><a href="/terms/ventabot/">이용약관</a></nav></div></header>
+  <main class="status-wrap" id="main">
+    <div class="status-heading"><p class="eyebrow">VENTABOT STATUS</p><h1>밴타봇 서버 상태</h1><p>현재 연결 상태와 복구 소식을 전합니다.</p></div>
+    <section id="status-banner" class="status-banner unknown" aria-live="polite" aria-atomic="true">
+      <span class="status-dot" aria-hidden="true"></span><div><h2 id="status-title">상태 확인 중</h2><p id="status-message">서버 상태를 불러오고 있습니다.</p></div>
+    </section>
+    <p class="status-meta" id="status-meta">30초마다 자동으로 갱신합니다.</p>
+    <aside class="status-notice" id="status-notice" hidden><h2>운영자 안내</h2><p id="notice-message"></p></aside>
+    <section class="status-card" aria-labelledby="connection-title">
+      <div class="status-row"><h2 id="connection-title">카카오톡 봇 연결</h2><span id="component-state">확인 중</span></div>
+      <p class="status-small">최근 30일 · 날짜별 관측 상태</p>
+      <div class="history-bars" id="history-bars" aria-label="최근 30일 연결 기록"></div>
+      <div class="history-caption"><span>30일 전</span><span>오늘</span></div>
+      <div class="status-legend"><span><i class="online"></i>정상</span><span><i class="offline"></i>장애 발생</span><span><i class="unknown"></i>기록 없음</span></div>
+      <p class="status-small">연결 보고가 90초 이상 도착하지 않으면 장애로 표시합니다. 연결 상태가 모든 명령어의 정상 동작을 보장하지는 않습니다.</p>
+    </section>
+    <section class="incident-section" aria-labelledby="incident-title"><div class="status-row"><h2 id="incident-title">장애 및 복구 기록</h2><button id="refresh" type="button" class="status-quiet">새로고침</button></div><div id="incidents"><p class="status-small">기록을 불러오고 있습니다.</p></div></section>
+    <noscript><p>실시간 상태를 확인하려면 JavaScript를 켜 주세요.</p></noscript>
+  </main>
+  <footer class="footer"><div class="wrap footer-inner"><span>© Team Venta × Void</span><nav class="footer-links"><a href="/ventabot/">밴타봇 소개</a><a href="/admin/status/">상태 관리</a></nav></div></footer>
+</body></html>

@@ -3,3 +3,9 @@ _site/
 .sass-cache/
 .bundle/
 /vendor/
+node_modules/
+.wrangler/
+.dev.vars*
+status-api/.dev.vars*
+status-api/.wrangler/
+.env*

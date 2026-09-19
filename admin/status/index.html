@@ -1,0 +1,14 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>밴타봇 상태 관리</title>
+<link rel="stylesheet" href="/assets/site.css?v=20260918-2"><link rel="stylesheet" href="/assets/status.css?v=20260919">
+<script type="module" src="/assets/status-admin.js?v=20260919"></script></head><body>
+<header class="nav"><div class="wrap nav-inner"><a class="brand" href="/">Venta <span>×</span> Void</a><nav class="nav-links"><a href="/ventabot/status/">공개 상태</a><a href="/admin/">약관 관리</a></nav></div></header>
+<main class="status-wrap"><div class="status-heading"><p class="eyebrow">STATUS ADMIN</p><h1>서버 상태 관리</h1><p>운영 안내와 장애 해결 과정을 알려 주세요.</p></div>
+<section class="status-card"><form id="auth-form" class="status-form"><label>GitHub 토큰<input id="token" type="password" autocomplete="off" required></label><p class="status-help">기존 약관 관리자와 동일하게 사이트 저장소 쓰기 권한이 필요합니다. 토큰은 상태 API를 거쳐 GitHub에서 권한 확인에만 사용하며 저장하지 않습니다.</p><button class="button" type="submit">관리 시작</button></form><button id="logout" class="status-quiet" hidden>로그아웃</button></section>
+<p id="admin-result" role="status" aria-live="polite"></p>
+<div id="admin-panels" hidden>
+<section class="status-card"><h2>공통 운영 안내</h2><p class="status-help">공개 페이지에 별도 안내로 표시합니다. 비우고 저장하면 숨겨집니다.</p><form id="notice-form" class="status-form"><label>안내 문구<textarea id="notice" maxlength="1000"></textarea></label><button class="button">저장</button></form></section>
+<section class="status-card"><h2>새 장애·점검 공지</h2><form id="create-form" class="status-form"><label>제목<input id="incident-title" maxlength="120" required></label><label>내용<textarea id="incident-message" maxlength="2000" required></textarea></label><button class="button">공지 등록</button></form></section>
+<section class="status-card"><h2>진행 중인 장애 업데이트</h2><p class="status-help">자동 장애의 최신 업데이트는 상단 복구 안내에도 반영됩니다. 자동 장애는 실제 연결 복구 시 해결 처리됩니다.</p><form id="update-form" class="status-form"><label>대상 장애<select id="incident-id" required></select></label><label>진행 상태<select id="stage"><option value="investigating">확인 중</option><option value="identified">원인 확인</option><option value="monitoring">복구 확인 중</option><option value="resolved">해결됨 (수동 공지)</option></select></label><label>업데이트 내용<textarea id="update-message" maxlength="2000" required></textarea></label><button class="button">업데이트 게시</button></form></section>
+<section><h2>최근 기록</h2><div id="admin-incidents"></div></section>
+</div></main></body></html>
