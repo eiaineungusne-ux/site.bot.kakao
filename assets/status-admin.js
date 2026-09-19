@@ -9,9 +9,24 @@ function resetLogin() {
 }
 function selectedNotice() {
   const item = records.find(i => i.id === $('manage-id').value);
+  const updates = item?.updates || [];
+  populateUpdates(updates);
   $('edit-title').value = item?.title || '';
-  $('edit-message').value = item?.updates.at(-1)?.message || '';
+  $('edit-message').value = updates[Number($('edit-update-index').value)]?.message || '';
   $('edit-fields').disabled = !item;
+}
+function populateUpdates(updates) {
+  const select = $('edit-update-index'), previous = select.value; select.replaceChildren();
+  updates.forEach((update, index) => {
+    const option = document.createElement('option'); option.value = String(index);
+    option.textContent = new Date(update.at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) + ' · ' + (update.stage === 'resolved' ? '해결됨' : '진행 기록');
+    select.append(option);
+  });
+  if (updates[Number(previous)]) select.value = previous;
+}
+function selectedUpdate() {
+  const item = records.find(i => i.id === $('manage-id').value);
+  $('edit-message').value = item?.updates[Number($('edit-update-index').value)]?.message || '';
 }
 function populate(id, items) {
   const select = $(id), previous = select.value; select.replaceChildren();
@@ -61,5 +76,9 @@ $('notice-delete').addEventListener('click', () => { if (confirm('운영 안내�
 $('create-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'create', title: $('incident-title').value, message: $('incident-message').value }); });
 $('update-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'update', id: $('incident-id').value, stage: $('stage').value, message: $('update-message').value }); });
 $('manage-id').addEventListener('change', selectedNotice);
-$('edit-form').addEventListener('submit', event => { event.preventDefault(); save({action:'edit',id:$('manage-id').value,title:$('edit-title').value,message:$('edit-message').value}); });
+// A message can be removed independently; the server removes the parent record
+// as well when it was the last message.
+$('update-remove').addEventListener('click', () => { if ($('manage-id').value && confirm('선택한 메시지를 삭제할까요?')) save({ action: 'delete_update', id: $('manage-id').value, updateIndex: Number($('edit-update-index').value) }); });
+$('edit-update-index').addEventListener('change', selectedUpdate);
+$('edit-form').addEventListener('submit', event => { event.preventDefault(); save({action:'edit',id:$('manage-id').value,updateIndex:Number($('edit-update-index').value),title:$('edit-title').value,message:$('edit-message').value}); });
 $('notice-remove').addEventListener('click', () => { if ($('manage-id').value && confirm('이 공지를 삭제할까요? 삭제한 공지는 복구할 수 없습니다.')) save({action:'delete',id:$('manage-id').value}); });

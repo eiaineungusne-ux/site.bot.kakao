@@ -22,7 +22,7 @@ const day = at => kstKey(at, 10);
 const text = (value, limit) => typeof value === 'string' && value.trim() && value.length <= limit;
 
 export function initial() {
-  return { lastSeen: null, state: 'unknown', restriction: 'none', manual: null, incidents: [], hours: {}, days: {}, notice: '', revision: 0 };
+  return { lastSeen: null, state: 'unknown', restriction: 'none', manual: null, incidents: [], hours: {}, days: {}, historyResetAt: null, notice: '', revision: 0 };
 }
 function normalize(s) {
   s.state = STATUS.includes(s.state) ? s.state : 'unknown';
@@ -31,12 +31,14 @@ function normalize(s) {
   s.incidents = Array.isArray(s.incidents) ? s.incidents : [];
   s.hours = s.hours && typeof s.hours === 'object' ? s.hours : {};
   s.days = s.days && typeof s.days === 'object' ? s.days : {};
+  s.historyResetAt = Number.isFinite(s.historyResetAt) ? s.historyResetAt : null;
   s.notice = typeof s.notice === 'string' ? s.notice : '';
   s.revision = Number.isSafeInteger(s.revision) ? s.revision : 0;
   return s;
 }
 function stateForRestriction(restriction) { return RESTRICTION_TO_STATE[restriction] || 'offline'; }
 function record(s, at, state = s.state) {
+  if (s.historyResetAt && at <= s.historyResetAt) return;
   const h = hour(at), d = day(at);
   if (!s.hours[h] || rank[state] > rank[s.hours[h]]) s.hours[h] = state;
   if (!s.days[d] || rank[state] > rank[s.days[d]]) s.days[d] = state;
@@ -85,7 +87,7 @@ export function heartbeat(s, report, now) {
 }
 export function adminUpdate(s, input, now) {
   normalize(s);
-  if (!['notice', 'display', 'create', 'update', 'edit', 'delete'].includes(input.action)) throw Error('Unknown action');
+  if (!['notice', 'display', 'create', 'update', 'edit', 'delete', 'delete_update'].includes(input.action)) throw Error('Unknown action');
   if (input.action === 'notice') {
     if (typeof input.message !== 'string' || input.message.length > 1000) throw Error('안내 문구를 확인하세요.');
     s.notice = input.message.trim();
@@ -99,13 +101,28 @@ export function adminUpdate(s, input, now) {
   } else if (input.action === 'create') {
     if (!text(input.title, 120) || !text(input.message, 2000)) throw Error('제목과 내용을 확인하세요.');
     s.incidents.unshift({ id: crypto.randomUUID(), automatic: false, title: input.title.trim(), startedAt: now, resolvedAt: null, updates: [{ at: now, stage: 'investigating', message: input.message.trim() }] });
-  } else if (input.action === 'edit' || input.action === 'delete') {
+  } else if (input.action === 'edit' || input.action === 'delete' || input.action === 'delete_update') {
     const item = s.incidents.find(item => item.id === input.id);
     if (!item) throw Error('기록을 찾지 못했습니다.');
-    if (input.action === 'delete') s.incidents = s.incidents.filter(candidate => candidate.id !== item.id);
-    else {
+    if (input.action === 'delete') {
+      s.incidents = s.incidents.filter(candidate => candidate.id !== item.id);
+      if (!s.incidents.length) { s.hours = {}; s.days = {}; s.historyResetAt = now; }
+    } else if (input.action === 'delete_update') {
+      const index = Number(input.updateIndex);
+      if (!Number.isInteger(index) || index < 0 || index >= item.updates.length) throw Error('Invalid message');
+      item.updates.splice(index, 1);
+      if (!item.updates.length) {
+        s.incidents = s.incidents.filter(candidate => candidate.id !== item.id);
+        if (!s.incidents.length) { s.hours = {}; s.days = {}; s.historyResetAt = now; }
+      } else {
+        const resolved = item.updates.filter(update => update.stage === 'resolved').map(update => update.at).sort((a, b) => b - a)[0];
+        item.resolvedAt = resolved || null;
+      }
+    } else {
       if (!text(input.title, 120) || !text(input.message, 2000)) throw Error('제목과 내용을 확인하세요.');
-      item.title = input.title.trim(); item.updates[item.updates.length - 1].message = input.message.trim(); item.editedAt = now;
+      const index = input.updateIndex == null ? item.updates.length - 1 : Number(input.updateIndex);
+      if (!Number.isInteger(index) || index < 0 || index >= item.updates.length) throw Error('Invalid message');
+      item.title = input.title.trim(); item.updates[index].message = input.message.trim(); item.editedAt = now;
     }
   } else {
     const item = s.incidents.find(item => item.id === input.id);
