@@ -1,25 +1,6 @@
 import { initial, heartbeat, expire, publicState, adminUpdate, TIMEOUT } from './state.mjs';
+import { equalSecret, authorizeAdmin } from './admin-auth.mjs';
 const json = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
-async function equalSecret(a, b) {
-  if (!a || !b) return false;
-  const bytes = value => new TextEncoder().encode(value);
-  const [x, y] = await Promise.all([a, b].map(value => crypto.subtle.digest('SHA-256', bytes(value))));
-  const xa = new Uint8Array(x), ya = new Uint8Array(y);
-  let different = 0;
-  for (let i = 0; i < xa.length; i++) different |= xa[i] ^ ya[i];
-  return different === 0;
-}
-async function isAdmin(request, env) {
-  const token = request.headers.get('Authorization')?.replace(/^Bearer /, '');
-  if (!token || token.length > 512) return false;
-  const result = await fetch('https://api.github.com/repos/' + env.ADMIN_REPO, {
-    headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'User-Agent': 'VentaBot-Status' },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!result.ok) return false;
-  const repo = await result.json();
-  return repo.permissions?.push === true || repo.permissions?.admin === true;
-}
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -40,9 +21,9 @@ export default {
       } else if (url.pathname === '/status' && request.method === 'GET') {
         response = await env.STATUS.get(env.STATUS.idFromName('ventabot')).fetch(request);
       } else if (url.pathname === '/admin' && request.method === 'POST') {
-        response = await isAdmin(request, env)
+        response = request.headers.get('Authorization')?.startsWith('Bearer ')
           ? await env.STATUS.get(env.STATUS.idFromName('ventabot')).fetch(request)
-          : json({ error: '사이트 저장소 쓰기 권한이 있는 GitHub 토큰이 필요합니다.' }, 403);
+          : json({ error: '관리자 비밀번호를 입력하세요.' }, 401);
       } else response = json({ error: 'Not found' }, 404);
     } catch { response = json({ error: '상태 서버 요청을 처리하지 못했습니다.' }, 503); }
     const headers = new Headers(response.headers);
@@ -52,7 +33,7 @@ export default {
   }
 };
 export class BotStatus {
-  constructor(ctx) { this.ctx = ctx; }
+  constructor(ctx, env = {}) { this.ctx = ctx; this.env = env; }
   async alarm() {
     await this.ctx.storage.transaction(async tx => {
       const s = await tx.get('state') || initial();
@@ -62,6 +43,10 @@ export class BotStatus {
   }
   async fetch(request) {
     const route = new URL(request.url).pathname;
+    if (route === '/admin') {
+      const status = await authorizeAdmin(request, this.env, this.ctx.storage);
+      if (status !== 200) return json({ error: status === 429 ? '로그인 시도가 너무 많습니다. 15분 후 다시 시도하세요.' : status === 503 ? '관리자 비밀번호가 아직 설정되지 않았습니다.' : '비밀번호가 올바르지 않습니다.' }, status);
+    }
     let input;
     if (request.method === 'POST') {
       const reader = request.body?.getReader();

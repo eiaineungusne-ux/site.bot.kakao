@@ -26,12 +26,17 @@ async function save(payload) {
   finally { busy = false; document.querySelectorAll('button').forEach(b => b.disabled = false); }
 }
 $('auth-form').addEventListener('submit', async event => {
-  event.preventDefault(); token = $('token').value.trim();
+  event.preventDefault();
+  if (busy) return;
+  busy = true;
+  token = $('token').value;
+  $('token').value = '';
   try {
     const data = await request({ action: 'read' });
     $('token').value = ''; $('auth-form').hidden = true; $('logout').hidden = false; $('admin-panels').hidden = false;
     render(data); show('관리자 권한을 확인했습니다.', true);
   } catch (error) { token = ''; show(error.message); }
+  finally { busy = false; }
 });
 $('logout').addEventListener('click', () => { token = ''; $('token').value = ''; $('admin-panels').hidden = true; $('auth-form').hidden = false; $('logout').hidden = true; show('로그아웃했습니다.', true); });
 $('notice-form').addEventListener('submit', event => { event.preventDefault(); save({ action: 'notice', message: $('notice').value }); });

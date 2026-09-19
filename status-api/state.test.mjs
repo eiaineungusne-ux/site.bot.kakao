@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initial, heartbeat, publicState, adminUpdate, TIMEOUT, BAN_MESSAGE } from './state.mjs';
 import worker, { BotStatus } from './worker.mjs';
+import { authorizeAdmin } from './admin-auth.mjs';
 test('no heartbeat means unknown, not a fabricated outage', () => {
   assert.equal(publicState(initial(), Date.now()).state, 'unknown');
 });
@@ -56,27 +57,27 @@ test('heartbeat authentication and origin validation happen before storage', asy
   const origin = await worker.fetch(new Request('https://status.test/status',{headers:{Origin:'https://evil.example'}}),env);
   assert.equal(origin.status,403);
   const admin = await worker.fetch(new Request('https://status.test/admin',{method:'POST'}),env);
-  assert.equal(admin.status,403);
+  assert.equal(admin.status,401);
 });
 test('admin read, update and request bounds in storage handler', async () => {
-  let state;
-  const tx={get:async()=>structuredClone(state),put:async(key,value)=>{state=structuredClone(value);},setAlarm:async()=>{},deleteAlarm:async()=>{}};
-  const handler=new BotStatus({storage:{transaction:fn=>fn(tx)}});
-  const call=body=>handler.fetch(new Request('https://status.test/admin',{method:'POST',body:JSON.stringify(body)}));
+  const values=new Map();
+  const tx={get:async key=>structuredClone(values.get(key)),put:async(key,value)=>{values.set(key,structuredClone(value));},setAlarm:async()=>{},deleteAlarm:async()=>{}};
+  const handler=new BotStatus({storage:{transaction:fn=>fn(tx)}},{ADMIN_PASSWORD:'test-password'});
+  const call=body=>handler.fetch(new Request('https://status.test/admin',{method:'POST',headers:{Authorization:'Bearer test-password'},body:JSON.stringify(body)}));
   let res=await call({action:'read'});
   assert.equal(res.status,200); assert.equal((await res.json()).state,'unknown');
   res=await call({action:'notice',message:'점검 중'});
   assert.equal((await res.json()).notice,'점검 중');
   assert.equal((await call({action:'notice',message:'x'.repeat(13000)})).status,413);
 });
-test('GitHub permission check allows repository writers only', async () => {
-  const original=globalThis.fetch;
-  let allowed=false;
-  globalThis.fetch=async()=>Response.json({permissions:{push:allowed}});
-  const env={ADMIN_REPO:'owner/repo',STATUS:{idFromName:()=>1,get:()=>({fetch:async()=>Response.json({ok:true})})}};
-  const request=()=>new Request('https://status.test/admin',{method:'POST',headers:{Authorization:'Bearer test-token'}});
-  try {
-    assert.equal((await worker.fetch(request(),env)).status,403);
-    allowed=true; assert.equal((await worker.fetch(request(),env)).status,200);
-  } finally {globalThis.fetch=original;}
+test('server password is required and failed guesses are rate limited', async () => {
+  const values=new Map(), tx={get:async key=>structuredClone(values.get(key)),put:async(key,value)=>values.set(key,structuredClone(value))};
+  const storage={transaction:fn=>fn(tx)}, env={ADMIN_PASSWORD:'test-password'};
+  const request=password=>new Request('https://status.test/admin',{method:'POST',headers:{Authorization:'Bearer '+password,'CF-Connecting-IP':'192.0.2.1'}});
+  assert.equal(await authorizeAdmin(request('test-password'),{},storage,0),503);
+  assert.equal(await authorizeAdmin(request('test-password'),env,storage,0),200);
+  for(let i=0;i<5;i++) assert.equal(await authorizeAdmin(request('wrong'),env,storage,0),401);
+  assert.equal(await authorizeAdmin(request('test-password'),env,storage,0),429);
+  assert.equal(await authorizeAdmin(request('test-password'),env,storage,900001),200);
+  assert.ok(!JSON.stringify([...values]).includes('test-password'));
 });

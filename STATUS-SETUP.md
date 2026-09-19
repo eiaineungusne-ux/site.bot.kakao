@@ -13,11 +13,12 @@
 
 ## 최초 배포
 
-현재 `assets/status-config.json`의 주소는 비워 두었습니다. 실제 배포 전에는 준비 중 안내가 표시되며 가짜 정상 상태를 보여 주지 않습니다.
+`assets/status-config.json`에는 공개 Worker 주소만 넣습니다. 주소가 비어 있으면 준비 중 안내를 표시하며 가짜 정상 상태를 보여 주지 않습니다.
 
 1. 이 폴더에서 `npx wrangler login`으로 Cloudflare에 로그인합니다.
 2. `npx wrangler deploy --config status-api/wrangler.jsonc`를 실행합니다. Durable Object 사용이 가능한 계정이어야 합니다.
 3. 충분히 긴 임의의 비밀키를 만들고 `npx wrangler secret put HEARTBEAT_TOKEN --config status-api/wrangler.jsonc`에 입력합니다. 비밀키는 Git에 올리지 않습니다.
+   관리자 비밀번호도 `npx wrangler secret put ADMIN_PASSWORD --config status-api/wrangler.jsonc`로 따로 등록합니다. 여러 계정에 접근 가능하면 기존 Pages가 있는 계정의 `CLOUDFLARE_ACCOUNT_ID`를 먼저 설정합니다.
 4. 배포된 Worker의 HTTPS 주소를 `assets/status-config.json`의 `apiBase`에 넣습니다.
 5. Termux `/data/data/com.termux/files/home/termux_bot/status-report.json`을 아래 형식으로 만듭니다. `token`은 3번과 동일하게 설정하고 파일 권한은 `chmod 600 status-report.json`으로 제한합니다.
 
@@ -31,11 +32,11 @@
 6. 사이트 변경분을 기존 배포 방식으로 게시합니다. 봇은 **사용자가 다음에 재시작할 때** 설정과 새 코드가 적용됩니다. 실행 중인 봇에 코드를 복사한 것만으로 상태 보고가 시작되지는 않습니다.
 7. `/ventabot/status/`에서 실제 마지막 보고 시각과 연결 상태를 확인합니다. 임의의 테스트 보고를 운영 API에 보내면 실제 상태와 섞이므로 테스트는 로컬에서만 합니다.
 
-도메인이 바뀌면 `wrangler.jsonc`의 `ALLOWED_ORIGINS`도 수정하여 재배포합니다. 운영 배포에서는 필요하지 않은 localhost 항목을 제거할 수 있습니다. Worker URL은 공개 정보지만 **HEARTBEAT_TOKEN 및 GitHub 관리자 토큰은 절대 사이트 JSON/HTML에 넣지 않습니다.**
+도메인이 바뀌면 `wrangler.jsonc`의 `ALLOWED_ORIGINS`도 수정하여 재배포합니다. Worker URL은 공개 정보지만 **HEARTBEAT_TOKEN 및 관리자 비밀번호는 절대 사이트 JSON/HTML에 넣지 않습니다.** 로컬 `.env`가 필요하면 사이트 폴더 바깥의 개인 전용 디렉토리에 보관하고 파일 접근 권한도 제한합니다. 운영 비밀번호는 [Cloudflare Worker Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)에서 관리합니다.
 
 ## 관리자
 
-사이트 저장소 `eiaineungusne-ux/site.bot.kakao`에 쓰기 권한이 있는 GitHub 계정의 개인 액세스 토큰으로 `/admin/status/`에 로그인합니다. fine-grained 토큰은 해당 저장소 선택 및 Repository metadata 읽기 권한이 필요합니다. Worker가 GitHub API의 저장소 권한을 요청마다 확인합니다. 토큰은 브라우저 메모리에만 보관하고 로컬 저장소나 서버 저장소에 기록하지 않습니다. 새로고침/로그아웃하면 다시 입력합니다.
+`/admin/status/`에서 운영자가 설정한 비밀번호로 로그인합니다. Worker Secret `ADMIN_PASSWORD`와 서버에서만 비교하며, 클라이언트 코드에 비밀번호나 검증용 해시를 넣지 않습니다. 브라우저 메모리에만 잠시 보관하고 HTTPS Authorization 헤더로 전송합니다. 새로고침/로그아웃하면 다시 입력합니다. 로그인 실패가 IP별 5회 또는 전체 100회 누적되면 해당 15분 제한 구간 동안 차단됩니다. 서버에는 비밀번호 대신 제한 횟수와 짧게 보관하는 IP 해시만 저장합니다. 기존 약관 관리자 `/admin/`의 GitHub 로그인은 별개이며 변경하지 않습니다.
 
 - 공통 운영 안내: 공개 페이지의 별도 공지. 비우면 숨김.
 - 새 장애·점검 공지: 운영자가 수동으로 작성하는 기록.
